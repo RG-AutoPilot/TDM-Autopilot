@@ -11,7 +11,7 @@ on:
 jobs:
   run_auto-masklet:
     runs-on: windows-latest
-    environment: 'build'
+    environment: 'build-posh7'
 
     steps:
       - name: Checkout code
