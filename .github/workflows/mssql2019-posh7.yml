@@ -1,9 +1,9 @@
 name: mssql2019-posh7
 
 on:
-  push:
+  pull_request:
     branches:
-      - '**'             # Run on all branches
+      - release
   schedule:
     - cron: '0 3 * * *'  # Runs at 3am UTC every day
   workflow_dispatch:
