@@ -11,6 +11,7 @@ on:
 jobs:
   run_auto-masklet:
     runs-on: windows-latest
+    environment: 'build'
 
     steps:
       - name: Checkout code
