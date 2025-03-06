@@ -1,9 +1,9 @@
 name: mssql2019-posh7
 
 on: # push, pr, nightly, and on demand, for all branches 
-  push:
-    branches-ignore:  # Prevents duplicate runs on PRs
-      - release
+  # push:
+  #   branches-ignore:  # Prevents duplicate runs on PRs
+  #     - release
   pull_request:  # Ensures PRs to main must pass the check
     branches:
       - release                    
