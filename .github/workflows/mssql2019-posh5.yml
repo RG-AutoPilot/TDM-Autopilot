@@ -34,7 +34,7 @@ jobs:
           Write-Output "    from: $downloadUrl"
           Write-Output "    to:   $zipFile"
           $ProgressPreference = 'SilentlyContinue'  # Disable slow progress updates
-          Invoke-WebRequest -Uri $downloadUrl -OutFile "$zipPath" -UseBasicParsing
+          Invoke-WebRequest -Uri $downloadUrl -OutFile "$zipFile" -UseBasicParsing
           Write-Output "  Extracting zip to: $rgCloneLocation"
           Add-Type -assembly "System.IO.Compression.Filesystem";
           [IO.Compression.Zipfile]::ExtractToDirectory($zipFile, $rgCloneLocation);
