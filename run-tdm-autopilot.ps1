@@ -5,8 +5,9 @@ param (
     $output = "C:/temp/TDM-Autopilot",
     $trustCert = $true,
     $backupPath = "",
-    $databaseName = "AutopilotDev",
+    $databaseName = "AutopilotProd",
     [switch]$autoContinue,
+    [switch]$autopilotAllDatabases,
     [switch]$skipAuth,
     [switch]$noRestore,
     [switch]$iAgreeToTheRedgateEula
@@ -29,9 +30,9 @@ if (-not $iAgreeToTheRedgateEula){
 
 # Configuration
 $sourceDb = "${databaseName}"
-$targetDb = "${databaseName}_Treated"
-$fullRestoreCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabasesFullRestore.sql"
-$subsetCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabasesSubset.sql"
+$targetDb = "AutopilotDev"
+$fullRestoreCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseFullRestore.sql"
+$subsetCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseSubset.sql"
 $installTdmClisScript = "$PSScriptRoot\helper_scripts\installTdmClis.ps1"
 $helperFunctions = "$PSScriptRoot\helper_scripts\helper-functions_autopilot.psm1"
 $subsetterOptionsFile = "$PSScriptRoot\helper_scripts\rgsubset-options-autopilot.json"
@@ -66,6 +67,7 @@ Write-Output "- targetConnectionString:  $targetConnectionString"
 Write-Output "- output:                  $output"
 Write-Output "- trustCert:               $trustCert"
 Write-Output "- backupPath:              $backupPath"
+Write-Output "- autopilotAllDatabases:   $autopilotAllDatabases"
 Write-Output "- noRestore:               $noRestore"
 Write-Output ""
 Write-Output "Initial setup:"
@@ -78,7 +80,8 @@ Write-Output "  Importing helper functions"
 import-module $helperFunctions
 $requiredFunctions = @(
     "Install-Dbatools",
-    "New-SampleDatabases",
+    "New-SampleDatabasesAutopilot",
+    "New-SampleDatabasesAutopilotFull",
     "Restore-StagingDatabasesFromBackup"
 )
 # Testing that all the required functions are available
@@ -177,10 +180,23 @@ else {
         break
     }
   }
+  if ($autopilotAllDatabases) {
+    # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
+    # Used to restore ALL autopilot databases, rather than just two which is the default
+    Write-Output "  Building all sample Autopilot databases."
+    $dbCreateSuccessful = New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
+    if ($dbCreateSuccessful){
+        Write-Output "    All Autopilot Databases successfully created."
+    }
+    else {
+        Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
+        break
+    }
+  }
   else {
     # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
-    Write-Output "  Building sample Northwind source and target databases."
-    $dbCreateSuccessful = New-SampleDatabases -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
+    Write-Output "  Building sample Autopilot source and target databases."
+    $dbCreateSuccessful = New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
     if ($dbCreateSuccessful){
         Write-Output "    Source and target databases created successfully."
     }
@@ -190,6 +206,8 @@ else {
     }
   }
 }
+$autopilotAllDatabases
+
 
 # Clean output directory
 Write-Output "  Cleaning the output directory at: $output"
@@ -340,8 +358,7 @@ Write-Output "Observe:"
 Write-Output "The data in the $targetDb database should now be masked."
 Write-Output "Review the data in the $sourceDb and $targetDb databases. Are you happy with the way they have been subsetted and masked?"
 Write-Output "Things you may like to look out for:"
-Write-Output "  - Notes fields (e.g. Employees.Notes)"
-Write-Output "  - Dependencies (e.g. If using the sample Northwind database, observer the Orders.ShipAddress and Customers.Address, joined on the CustoemrID column in each table"
+Write-Output "  - Dependencies (e.g. If using the sample Autopilot database, observe the Customers.Customer and Sales.Orders, joined on the CustomerID column in each table"
 Write-Output ""
 Write-Output "Additional tasks:"
 Write-Output "Review both rgsubset-options.json examples in ./helper_scripts, as well as this documentation about using options files:"
