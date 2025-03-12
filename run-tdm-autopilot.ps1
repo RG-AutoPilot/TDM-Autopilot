@@ -2,13 +2,13 @@ param (
     $sqlInstance = "localhost",
     $sqlUser = "",
     $sqlPassword = "",
-    $output = "C:/temp/TDM-Autopilot",
+    $output = "C:/temp/tdm-autopilot",
     $trustCert = $true,
     $backupPath = "",
-    $databaseName = "AutopilotProd",
+    $databaseName = "Northwind",
     [switch]$autoContinue,
-    [switch]$autopilotAllDatabases,
     [switch]$skipAuth,
+    [switch]$autopilotAllDatabases,
     [switch]$noRestore,
     [switch]$iAgreeToTheRedgateEula
 )
@@ -29,13 +29,23 @@ if (-not $iAgreeToTheRedgateEula){
 }
 
 # Configuration
-$sourceDb = "${databaseName}"
-$targetDb = "AutopilotDev"
-$fullRestoreCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseFullRestore.sql"
-$subsetCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseSubset.sql"
-$installTdmClisScript = "$PSScriptRoot\helper_scripts\installTdmClis.ps1"
-$helperFunctions = "$PSScriptRoot\helper_scripts\helper-functions_autopilot.psm1"
-$subsetterOptionsFile = "$PSScriptRoot\helper_scripts\rgsubset-options-autopilot.json"
+if ($autopilotAllDatabases){
+    $sourceDb = "AutopilotProd"
+    $targetDb = "AutopilotDev"
+    $fullRestoreCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseFullRestore.sql"
+    $subsetCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseSubset.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\helper_scripts\rgsubset-options-autopilot.json"
+} else {
+    $sourceDb = "${databaseName}_FullRestore"
+    $targetDb = "${databaseName}_Subset"
+    $fullRestoreCreateScript = "$PSScriptRoot\helper_scripts\CreateNorthwindFullRestore.sql"
+    $subsetCreateScript = "$PSScriptRoot\helper_scripts\CreateNorthwindSubset.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\helper_scripts\rgsubset-options-northwind.json"
+}
+
+$installTdmClisScript = "$PSScriptRoot/helper_scripts/installTdmClis.ps1"
+$helperFunctions = "$PSScriptRoot/helper_scripts/helper-functions.psm1"
+
 $winAuth = $true
 $sourceConnectionString = ""
 $targetConnectionString = ""
@@ -80,6 +90,7 @@ Write-Output "  Importing helper functions"
 import-module $helperFunctions
 $requiredFunctions = @(
     "Install-Dbatools",
+    "New-SampleDatabases",
     "New-SampleDatabasesAutopilot",
     "New-SampleDatabasesAutopilotFull",
     "Restore-StagingDatabasesFromBackup"
@@ -106,10 +117,11 @@ else {
     break
 }
 
-
-# Only prompt if autoContinue is false
 if (-not $autoContinue) {
-    $tdmInstallResponse = Read-Host "Do you want to install the latest version of TDM Data Treatments? (Default - n) (y/n)"
+    do {
+        $tdmInstallResponse = Get-ValidatedInput -PromptMessage "Do you want to install the latest version of TDM Data Treatments? (Default - n) (y/n)" -ErrorMessage "Do you want to install the latest version of TDM Data Treatments? Please enter Y or N"
+        $tdmInstallResponse = $tdmInstallResponse.ToUpper()
+    } until ($tdmInstallResponse -match "^(Y|N)$")
 } else {
     $tdmInstallResponse = "y"  # Auto-set response to "y" for CI/CD pipelines
 }
@@ -195,8 +207,8 @@ else {
   }
   else {
     # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
-    Write-Output "  Building sample Autopilot source and target databases."
-    $dbCreateSuccessful = New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
+    Write-Output "  Building sample source and target databases."
+    $dbCreateSuccessful = New-SampleDatabases -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
     if ($dbCreateSuccessful){
         Write-Output "    Source and target databases created successfully."
     }
@@ -206,8 +218,6 @@ else {
     }
   }
 }
-$autopilotAllDatabases
-
 
 # Clean output directory
 Write-Output "  Cleaning the output directory at: $output"
@@ -226,7 +236,7 @@ Write-Output "$sourceDb should contain some data"
 if ($backupPath){
     Write-Output "$targetDb should be identical. In an ideal world, it would be schema identical, but empty of data."
 }
-else {
+if ($autopilotAllDatabases) {
     Write-Output "$targetDb should have an identical schema, but no data"
     Write-Output ""
     Write-Output "For example, you could run the following script in your prefered IDE:"
@@ -246,6 +256,27 @@ else {
     Write-Output "                  c.Address AS 'c.Address'"
     Write-Output "  FROM     Customers.Customer c"
     Write-Output "           JOIN Sales.Orders o ON o.CustomerID = c.CustomerID"
+    Write-Output "  ORDER BY o.OrderID ASC;"
+}
+else {
+    Write-Output "$targetDb should have an identical schema, but no data"
+    Write-Output ""
+    Write-Output "For example, you could run the following script in your prefered IDE:"
+    Write-Output ""
+    Write-Output "  USE $sourceDb"
+    Write-Output "  --USE $targetDb -- Uncomment to run the same query on the target database"
+    Write-Output "  "
+    Write-Output "  SELECT COUNT (*) AS TotalOrders"
+    Write-Output "  FROM   dbo.Orders;"
+    Write-Output "  "
+    Write-Output "  SELECT   TOP 20 o.OrderID AS 'o.OrderId' ,"
+    Write-Output "                  o.CustomerID AS 'o.CustomerID' ,"
+    Write-Output "                  o.ShipAddress AS 'o.ShipAddress' ,"
+    Write-Output "                  o.ShipCity AS 'o.ShipCity' ,"
+    Write-Output "                  c.Address AS 'c.Address' ,"
+    Write-Output "                  c.City AS 'c.ShipCity'"
+    Write-Output "  FROM     dbo.Customers c"
+    Write-Output "           JOIN dbo.Orders o ON o.CustomerID = c.CustomerID"
     Write-Output "  ORDER BY o.OrderID ASC;"
 }
 Write-Output ""
@@ -358,7 +389,8 @@ Write-Output "Observe:"
 Write-Output "The data in the $targetDb database should now be masked."
 Write-Output "Review the data in the $sourceDb and $targetDb databases. Are you happy with the way they have been subsetted and masked?"
 Write-Output "Things you may like to look out for:"
-Write-Output "  - Dependencies (e.g. If using the sample Autopilot database, observe the Customers.Customer and Sales.Orders, joined on the CustomerID column in each table"
+Write-Output "  - Notes fields (e.g. Employees.Notes)"
+Write-Output "  - Dependencies (e.g. If using the sample Northwind database, observer the Orders.ShipAddress and Customers.Address, joined on the CustoemrID column in each table"
 Write-Output ""
 Write-Output "Additional tasks:"
 Write-Output "Review both rgsubset-options.json examples in ./helper_scripts, as well as this documentation about using options files:"
