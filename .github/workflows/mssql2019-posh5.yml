@@ -140,8 +140,8 @@ jobs:
           $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ${{ steps.createDc.outputs.dbUser }}, (ConvertTo-SecureString ${{ steps.createDc.outputs.dbPassword }} -AsPlainText -Force)
           
           # Validating rgsubset
-          $totalOrders = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database AutopilotDev_Treated -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
-          Write-Output "If rgsubset ran successfully, there should be 499 orders in the AutopilotDev_Treated database"
+          $totalOrders = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database AutopilotDev -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
+          Write-Output "If rgsubset ran successfully, there should be 499 orders in the AutopilotDev database"
           Write-Output "Total Orders: $totalOrders"
           if ($totalOrders -eq 498) {
             Write-Output "rgsubset ran successfully"
@@ -151,7 +151,7 @@ jobs:
           }
 
           # Validating rganonymize
-          $customer570Address = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database AutopilotDev_Treated -Query "SELECT Address FROM Customers.Customer WHERE CustomerID = 570" -SqlCredential $SqlCredential).Address
+          $customer570Address = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database AutopilotDev -Query "SELECT Address FROM Customers.Customer WHERE CustomerID = 570" -SqlCredential $SqlCredential).Address
           Write-Output "If rganonymize ran successfully, Customer 570 should NOT be 55 Maromas St."
           Write-Output "Address: $customer570Address"
           if ($customer570Address -like "55 Maromas St.") {
