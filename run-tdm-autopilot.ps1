@@ -2,7 +2,7 @@ param (
     $sqlInstance = "localhost",
     $sqlUser = "",
     $sqlPassword = "",
-    $output = "C:/temp/tdm-autopilot",
+    $output = "C:\temp\tdm-autopilot",
     $trustCert = $true,
     $backupPath = "",
     $databaseName = "Northwind",
@@ -13,23 +13,9 @@ param (
     [switch]$iAgreeToTheRedgateEula
 )
 
-# Userts must agree to the Redgate Eula, either by using the -iAgreeToTheRedgateEula parameter, or by responding to a prompt
-if (-not $iAgreeToTheRedgateEula){
-    if ($autoContinue){
-        Write-Error 'If using the -autoContinue parameter, the -iAgreeToTheRedgateEula parameter is also required.'
-        break
-    }
-    else {
-        $eulaResponse = Read-Host "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)"
-        if ($eulaResponse -notlike "y"){
-            Write-output 'Response not like "y". Teminating script.'
-            break
-        }
-    }
-}
-
 # Configuration
 if ($autopilotAllDatabases){
+    $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd"
     $targetDb = "AutopilotDev"
     $fullRestoreCreateScript = "$PSScriptRoot\helper_scripts\CreateAutopilotDatabaseFullRestore.sql"
@@ -43,8 +29,8 @@ if ($autopilotAllDatabases){
     $subsetterOptionsFile = "$PSScriptRoot\helper_scripts\rgsubset-options-northwind.json"
 }
 
-$installTdmClisScript = "$PSScriptRoot/helper_scripts/installTdmClis.ps1"
-$helperFunctions = "$PSScriptRoot/helper_scripts/helper-functions.psm1"
+$installTdmClisScript = "$PSScriptRoot\helper_scripts\installTdmClis.ps1"
+$helperFunctions = "$PSScriptRoot\helper_scripts\helper-functions.psm1"
 
 $winAuth = $true
 $sourceConnectionString = ""
@@ -106,6 +92,23 @@ $requiredFunctions | ForEach-Object {
     }
 }
 
+# Userts must agree to the Redgate Eula, either by using the -iAgreeToTheRedgateEula parameter, or by responding to a prompt
+if (-not $iAgreeToTheRedgateEula){
+    if ($autoContinue){
+        Write-Error 'If using the -autoContinue parameter, the -iAgreeToTheRedgateEula parameter is also required.'
+        break
+    }
+    else {
+        do { $eulaResponse = Get-ValidatedInput -PromptMessage "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)" -ErrorMessage "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)"
+             $eulaResponse = $eulaResponse.ToUpper()
+            } until ($eulaResponse -match "^(Y|N)$")
+    if ($eulaResponse -notlike "y") {
+        Write-output 'Response not like "y". Teminating script.'
+        break
+        }
+    }
+}
+
 # Installing/importing dbatools
 Write-Output "  Installing dbatools"
 $dbatoolsInstalledSuccessfully = Install-Dbatools -autoContinue:$autoContinue -trustCert:$trustCert
@@ -119,7 +122,7 @@ else {
 
 if (-not $autoContinue) {
     do {
-        $tdmInstallResponse = Get-ValidatedInput -PromptMessage "Do you want to install the latest version of TDM Data Treatments? (Default - n) (y/n)" -ErrorMessage "Do you want to install the latest version of TDM Data Treatments? Please enter Y or N"
+        $tdmInstallResponse = Get-ValidatedInput -PromptMessage "Do you want to install the latest version of TDM Data Treatments? (y/n)" -ErrorMessage "Do you want to install the latest version of TDM Data Treatments? Please enter Y or N"
         $tdmInstallResponse = $tdmInstallResponse.ToUpper()
     } until ($tdmInstallResponse -match "^(Y|N)$")
 } else {
