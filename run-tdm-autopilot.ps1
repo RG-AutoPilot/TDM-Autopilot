@@ -34,7 +34,7 @@ $fullRestoreCreateScript = "$PSScriptRoot/helper_scripts/CreateNorthwindFullRest
 $subsetCreateScript = "$PSScriptRoot/helper_scripts/CreateNorthwindSubset.sql"
 $installTdmClisScript = "$PSScriptRoot/helper_scripts/installTdmClis.ps1"
 $helperFunctions = "$PSScriptRoot/helper_scripts/helper-functions.psm1"
-$subsetterOptionsFile = "$PSScriptRoot\helper_scripts\rgsubset-options-northwind.json"
+$subsetterOptionsFile = "$PSScriptRoot/helper_scripts/rgsubset-options-northwind.json"
 
 $winAuth = $true
 $sourceConnectionString = ""
