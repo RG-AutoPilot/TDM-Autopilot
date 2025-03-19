@@ -835,3 +835,7 @@ IF @@ERROR <> 0 SET NOEXEC ON
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
+
+
+-- Insert data into tables --
+
