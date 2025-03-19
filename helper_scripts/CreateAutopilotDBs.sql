@@ -35,232 +35,12 @@ CREATE ROLE CustomerService;
 CREATE ROLE Admin;
 
 
-CREATE TABLE Customers.LoyaltyProgram (
+CREATE TABLE Sales.LoyaltyProgram (
     ProgramID INT PRIMARY KEY IDENTITY,
     ProgramName NVARCHAR(50) NOT NULL,
     PointsMultiplier DECIMAL(3, 2) DEFAULT 1.0
 );
 
-CREATE TABLE Customers.CustomerFeedback (
-    FeedbackID INT PRIMARY KEY IDENTITY,
-    CustomerID INT FOREIGN KEY REFERENCES Customers.Customer(CustomerID),
-    FeedbackDate DATETIME DEFAULT GETDATE(),
-    Rating INT CHECK (Rating BETWEEN 1 AND 5),
-    Comments NVARCHAR(500)
-);
-GO
-
--- Tables in Logistics Schema
-CREATE TABLE Logistics.Flight (
-    FlightID INT PRIMARY KEY IDENTITY,
-    Airline NVARCHAR(50) NOT NULL,
-    DepartureCity NVARCHAR(50) NOT NULL,
-    ArrivalCity NVARCHAR(50) NOT NULL,
-    DepartureTime DATETIME NOT NULL,
-    ArrivalTime DATETIME NOT NULL,
-    Price DECIMAL(10, 2) NOT NULL,
-    AvailableSeats INT NOT NULL
-);
-
-CREATE TABLE Logistics.FlightRoute (
-    RouteID INT PRIMARY KEY IDENTITY,
-    DepartureCity NVARCHAR(50) NOT NULL,
-    ArrivalCity NVARCHAR(50) NOT NULL,
-    Distance INT NOT NULL
-);
-
-CREATE TABLE Logistics.MaintenanceLog (
-    LogID INT PRIMARY KEY IDENTITY,
-    FlightID INT FOREIGN KEY REFERENCES Logistics.Flight(FlightID),
-    MaintenanceDate DATETIME DEFAULT GETDATE(),
-    Description NVARCHAR(500),
-    MaintenanceStatus NVARCHAR(20) DEFAULT 'Pending'
-);
-GO
-
--- Tables in Sales Schema
-CREATE TABLE Sales.Orders (
-    OrderID INT PRIMARY KEY IDENTITY,
-    CustomerID INT FOREIGN KEY REFERENCES Customers.Customer(CustomerID),
-    FlightID INT FOREIGN KEY REFERENCES Logistics.Flight(FlightID),
-    OrderDate DATETIME DEFAULT GETDATE(),
-    Status NVARCHAR(20) DEFAULT 'Pending',
-    TotalAmount DECIMAL(10, 2),
-    TicketQuantity INT
-);
-
-CREATE TABLE Sales.DiscountCode (
-    DiscountID INT PRIMARY KEY IDENTITY,
-    Code NVARCHAR(20) UNIQUE NOT NULL,
-    DiscountPercentage DECIMAL(4, 2) CHECK (DiscountPercentage BETWEEN 0 AND 100),
-    ExpiryDate DATETIME
-);
-
-CREATE TABLE Sales.OrderAuditLog (
-    AuditID INT PRIMARY KEY IDENTITY,
-    OrderID INT FOREIGN KEY REFERENCES Sales.Orders(OrderID),
-    ChangeDate DATETIME DEFAULT GETDATE(),
-    ChangeDescription NVARCHAR(500)
-);
-GO
-
--- Views
-
-GO
-CREATE VIEW Sales.CustomerOrdersView AS
-SELECT 
-    c.CustomerID,
-    c.FirstName,
-    c.LastName,
-    o.OrderID,
-    o.OrderDate,
-    o.Status,
-    o.TotalAmount
-FROM Customers.Customer c
-JOIN Sales.Orders o ON c.CustomerID = o.CustomerID;
-GO
-
-CREATE VIEW Customers.CustomerFeedbackSummary AS
-SELECT 
-    c.CustomerID,
-    c.FirstName,
-    c.LastName,
-    AVG(f.Rating) AS AverageRating,
-    COUNT(f.FeedbackID) AS FeedbackCount
-FROM Customers.Customer c
-LEFT JOIN Customers.CustomerFeedback f ON c.CustomerID = f.CustomerID
-GROUP BY c.CustomerID, c.FirstName, c.LastName;
-GO
-
-CREATE VIEW Logistics.FlightMaintenanceStatus AS
-SELECT 
-    f.FlightID,
-    f.Airline,
-    f.DepartureCity,
-    f.ArrivalCity,
-    COUNT(m.LogID) AS MaintenanceCount,
-    SUM(CASE WHEN m.MaintenanceStatus = 'Completed' THEN 1 ELSE 0 END) AS CompletedMaintenance
-FROM Logistics.Flight f
-LEFT JOIN Logistics.MaintenanceLog m ON f.FlightID = m.FlightID
-GROUP BY f.FlightID, f.Airline, f.DepartureCity, f.ArrivalCity;
-GO
-
--- Stored Procedures
-
-CREATE PROCEDURE Sales.GetCustomerFlightHistory @CustomerID INT
-AS
-BEGIN
-    SELECT 
-        o.OrderID,
-        f.Airline,
-        f.DepartureCity,
-        f.ArrivalCity,
-        o.OrderDate,
-        o.Status,
-        o.TotalAmount
-    FROM Sales.Orders o
-    JOIN Logistics.Flight f ON o.FlightID = f.FlightID
-    WHERE o.CustomerID = @CustomerID
-    ORDER BY o.OrderDate;
-END;
-GO
-
-CREATE PROCEDURE Sales.UpdateOrderStatus
-    @OrderID INT,
-    @NewStatus NVARCHAR(20)
-AS
-BEGIN
-    UPDATE Sales.Orders
-    SET Status = @NewStatus
-    WHERE OrderID = @OrderID;
-END;
-GO
-
-CREATE PROCEDURE Logistics.UpdateAvailableSeats
-    @FlightID INT,
-    @SeatChange INT
-AS
-BEGIN
-    UPDATE Logistics.Flight
-    SET AvailableSeats = AvailableSeats + @SeatChange
-    WHERE FlightID = @FlightID;
-END;
-GO
-
-CREATE PROCEDURE Sales.ApplyDiscount
-    @OrderID INT,
-    @DiscountCode NVARCHAR(20)
-AS
-BEGIN
-    DECLARE @DiscountID INT, @DiscountPercentage DECIMAL(4, 2), @ExpiryDate DATETIME;
-    
-    SELECT 
-        @DiscountID = DiscountID,
-        @DiscountPercentage = DiscountPercentage,
-        @ExpiryDate = ExpiryDate
-    FROM Sales.DiscountCode
-    WHERE Code = @DiscountCode;
-    
-    IF @DiscountID IS NOT NULL AND @ExpiryDate >= GETDATE()
-    BEGIN
-        UPDATE Sales.Orders
-        SET TotalAmount = TotalAmount * (1 - @DiscountPercentage / 100)
-        WHERE OrderID = @OrderID;
-
-        INSERT INTO Sales.OrderAuditLog (OrderID, ChangeDescription)
-        VALUES (@OrderID, CONCAT('Discount ', @DiscountCode, ' applied with ', @DiscountPercentage, '% off.'));
-    END
-    ELSE
-    BEGIN
-        RAISERROR('Invalid or expired discount code.', 16, 1);
-    END
-END;
-GO
-
-CREATE PROCEDURE Logistics.AddMaintenanceLog
-    @FlightID INT,
-    @Description NVARCHAR(500)
-AS
-BEGIN
-    INSERT INTO Logistics.MaintenanceLog (FlightID, Description, MaintenanceStatus)
-    VALUES (@FlightID, @Description, 'Pending');
-
-    PRINT 'Maintenance log entry created.';
-END;
-GO
-
-CREATE PROCEDURE Customers.RecordFeedback
-    @CustomerID INT,
-    @Rating INT,
-    @Comments NVARCHAR(500)
-AS
-BEGIN
-    INSERT INTO Customers.CustomerFeedback (CustomerID, Rating, Comments)
-    VALUES (@CustomerID, @Rating, @Comments);
-
-    PRINT 'Customer feedback recorded successfully.';
-END;
-GO
-
-PRINT N'Creating [Customer].[CustomerDemographics]'
-GO
-CREATE TABLE [Sales].[CustomerDemographics]
-(
-[CustomerTypeID] [nchar] (10) COLLATE Latin1_General_CI_AS NOT NULL,
-[CustomerDesc] [ntext] COLLATE Latin1_General_CI_AS NULL,
-[nationality] [nvarchar] (20) COLLATE Latin1_General_CI_AS NULL
-)
-GO
-IF @@ERROR <> 0 SET NOEXEC ON
-GO
-PRINT N'Creating primary key [PK_CustomerDemographics] on [Sales].[CustomerDemographics]'
-GO
-ALTER TABLE [Sales].[CustomerDemographics] ADD CONSTRAINT [PK_CustomerDemographics] PRIMARY KEY NONCLUSTERED ([CustomerTypeID])
-GO
-IF @@ERROR <> 0 SET NOEXEC ON
-GO
-PRINT N'Creating [Sales].[Customers]'
-GO
 CREATE TABLE [Sales].[Customers]
 (
 [CustomerID] [nchar] (5) COLLATE Latin1_General_CI_AS NOT NULL,
@@ -311,6 +91,52 @@ CREATE NONCLUSTERED INDEX [Region] ON [Sales].[Customers] ([Region])
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
+
+CREATE TABLE Sales.CustomersFeedback (
+    FeedbackID INT PRIMARY KEY IDENTITY,
+    CustomerID nchar(5) FOREIGN KEY REFERENCES Sales.Customers(CustomerID),
+    FeedbackDate DATETIME DEFAULT GETDATE(),
+    Rating INT CHECK (Rating BETWEEN 1 AND 5),
+    Comments NVARCHAR(500)
+);
+GO
+
+-- Tables in Logistics Schema
+CREATE TABLE Logistics.Flight (
+    FlightID INT PRIMARY KEY IDENTITY,
+    Airline NVARCHAR(50) NOT NULL,
+    DepartureCity NVARCHAR(50) NOT NULL,
+    ArrivalCity NVARCHAR(50) NOT NULL,
+    DepartureTime DATETIME NOT NULL,
+    ArrivalTime DATETIME NOT NULL,
+    Price DECIMAL(10, 2) NOT NULL,
+    AvailableSeats INT NOT NULL
+);
+
+CREATE TABLE Logistics.FlightRoute (
+    RouteID INT PRIMARY KEY IDENTITY,
+    DepartureCity NVARCHAR(50) NOT NULL,
+    ArrivalCity NVARCHAR(50) NOT NULL,
+    Distance INT NOT NULL
+);
+
+CREATE TABLE Logistics.MaintenanceLog (
+    LogID INT PRIMARY KEY IDENTITY,
+    FlightID INT FOREIGN KEY REFERENCES Logistics.Flight(FlightID),
+    MaintenanceDate DATETIME DEFAULT GETDATE(),
+    Description NVARCHAR(500),
+    MaintenanceStatus NVARCHAR(20) DEFAULT 'Pending'
+);
+GO
+
+CREATE TABLE Sales.DiscountCode (
+    DiscountID INT PRIMARY KEY IDENTITY,
+    Code NVARCHAR(20) UNIQUE NOT NULL,
+    DiscountPercentage DECIMAL(4, 2) CHECK (DiscountPercentage BETWEEN 0 AND 100),
+    ExpiryDate DATETIME
+);
+
+
 PRINT N'Creating [Operation].[Employees]'
 GO
 CREATE TABLE [Operation].[Employees]
@@ -411,7 +237,10 @@ CREATE TABLE [Sales].[Orders]
 [ShipRegion] [nvarchar] (15) COLLATE Latin1_General_CI_AS NULL,
 [ShipPostalCode] [nvarchar] (10) COLLATE Latin1_General_CI_AS NULL,
 [ShipCountry] [nvarchar] (15) COLLATE Latin1_General_CI_AS NULL,
-[ShipCountryCode] [int] NULL
+[ShipCountryCode] [int] NULL,
+[FlightID] [int] NULL,
+[Status] [nvarchar] (20) COLLATE Latin1_General_CI_AS NULL,
+[TotalAmount] [money] NULL
 )
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
@@ -470,6 +299,16 @@ CREATE NONCLUSTERED INDEX [ShippersOrders] ON [Sales].[Orders] ([ShipVia])
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
+
+CREATE TABLE Sales.OrderAuditLog (
+    AuditID INT PRIMARY KEY IDENTITY,
+    OrderID INT,
+    ChangeDate DATETIME DEFAULT GETDATE(),
+    ChangeDescription NVARCHAR(500),
+    FOREIGN KEY (OrderID) REFERENCES Sales.Orders(OrderID)
+);
+GO
+
 PRINT N'Creating [Sales].[Order Details]'
 GO
 CREATE TABLE [Sales].[Order Details]
@@ -672,15 +511,159 @@ ALTER TABLE [Logistics].[Region] ADD CONSTRAINT [PK_Region] PRIMARY KEY NONCLUST
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
+-- Views
+
+GO
+CREATE VIEW Sales.CustomerOrdersView AS
+SELECT 
+    c.CustomerID,
+    c.CompanyName,
+    c.ContactName,
+    c.Address,
+    c.City,
+    c.Region,
+    c.Phone
+FROM Sales.Customers c
+JOIN Sales.Orders o ON c.CustomerID = o.CustomerID;
+GO
+CREATE VIEW Sales.CustomersFeedbackSummary AS
+SELECT 
+    c.CustomerID,
+    c.CompanyName,
+    c.ContactName,
+    AVG(f.Rating) AS AverageRating,
+    COUNT(f.FeedbackID) AS FeedbackCount
+FROM Sales.Customers c
+LEFT JOIN Sales.CustomersFeedback f ON c.CustomerID = f.CustomerID
+GROUP BY c.CustomerID, c.CompanyName, c.ContactName;
+GO
+
+CREATE VIEW Logistics.FlightMaintenanceStatus AS
+SELECT 
+    f.FlightID,
+    f.Airline,
+    f.DepartureCity,
+    f.ArrivalCity,
+    COUNT(m.LogID) AS MaintenanceCount,
+    SUM(CASE WHEN m.MaintenanceStatus = 'Completed' THEN 1 ELSE 0 END) AS CompletedMaintenance
+FROM Logistics.Flight f
+LEFT JOIN Logistics.MaintenanceLog m ON f.FlightID = m.FlightID
+GROUP BY f.FlightID, f.Airline, f.DepartureCity, f.ArrivalCity;
+GO
+
+-- Stored Procedures
+
+CREATE PROCEDURE Sales.GetCustomerFlightHistory @CustomerID INT
+AS
+BEGIN
+    SELECT 
+        o.OrderID,
+        f.Airline,
+        f.DepartureCity,
+        f.ArrivalCity,
+        o.OrderDate,
+        o.Status,
+        o.TotalAmount,
+        c.CompanyName,
+        c.ContactName,
+        c.ContactTitle,
+        c.Address,
+        c.City,
+        c.Region,
+        c.PostalCode,
+        c.Country,
+        c.Phone,
+        c.Fax
+    FROM Sales.Orders o
+    JOIN Logistics.Flight f ON o.FlightID = f.FlightID
+    JOIN Sales.Customers c ON o.CustomerID = c.CustomerID
+    WHERE o.CustomerID = @CustomerID
+    ORDER BY o.OrderDate;
+END;
+GO
+
+CREATE PROCEDURE Sales.UpdateOrderStatus
+    @OrderID INT,
+    @NewStatus NVARCHAR(20)
+AS
+BEGIN
+    BEGIN TRY
+        UPDATE Sales.Orders
+        SET Status = @NewStatus
+        WHERE OrderID = @OrderID;
+    END TRY
+    BEGIN CATCH
+        PRINT 'Error occurred while updating order status.';
+        THROW;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE Logistics.UpdateAvailableSeats
+    @FlightID INT,
+    @SeatChange INT
+AS
+BEGIN
+    UPDATE Logistics.Flight
+    SET AvailableSeats = AvailableSeats + @SeatChange
+    WHERE FlightID = @FlightID;
+END;
+GO
+
+CREATE PROCEDURE Logistics.AddMaintenanceLog
+    @FlightID INT,
+    @Description NVARCHAR(500)
+AS
+BEGIN
+    INSERT INTO Logistics.MaintenanceLog (FlightID, Description, MaintenanceStatus)
+    VALUES (@FlightID, @Description, 'Pending');
+
+    PRINT 'Maintenance log entry created.';
+END;
+GO
+
+CREATE PROCEDURE Customers.RecordFeedback
+    @CustomerID INT,
+    @Rating INT,
+    @Comments NVARCHAR(500)
+AS
+BEGIN
+    INSERT INTO Sales.CustomersFeedback (CustomerID, Rating, Comments)
+    VALUES (@CustomerID, @Rating, @Comments);
+
+    PRINT 'Customer feedback recorded successfully.';
+END;
+GO
+
+PRINT N'Creating [Customer].[CustomerDemographics]'
+GO
+CREATE TABLE [Sales].[CustomerDemographics]
+(
+[CustomerTypeID] [nchar] (10) COLLATE Latin1_General_CI_AS NOT NULL,
+[CustomerDesc] [ntext] COLLATE Latin1_General_CI_AS NULL,
+[nationality] [nvarchar] (20) COLLATE Latin1_General_CI_AS NULL
+)
+GO
+IF @@ERROR <> 0 SET NOEXEC ON
+GO
+PRINT N'Creating primary key [PK_CustomerDemographics] on [Sales].[CustomerDemographics]'
+GO
+ALTER TABLE [Sales].[CustomerDemographics] ADD CONSTRAINT [PK_CustomerDemographics] PRIMARY KEY NONCLUSTERED ([CustomerTypeID])
+GO
+IF @@ERROR <> 0 SET NOEXEC ON
+GO
+PRINT N'Creating [Sales].[Customers]'
+GO
+
 PRINT N'Creating [Sales].[Order Details Extended]'
 GO
 
 create view [Sales].[Order Details Extended] AS
-SELECT "Order Details".OrderID, "Order Details".ProductID, Products.ProductName, 
-	"Order Details".UnitPrice, "Order Details".Quantity, "Order Details".Discount, 
-	(CONVERT(money,("Order Details".UnitPrice*Quantity*(1-Discount)/100))*100) AS ExtendedPrice
-FROM Products INNER JOIN "Order Details" ON Products.ProductID = "Order Details".ProductID
---ORDER BY "Order Details".OrderID
+SELECT od.OrderID, od.ProductID, p.ProductName, 
+    od.UnitPrice, od.Quantity, od.Discount, 
+    (CONVERT(money,(od.UnitPrice*od.Quantity*(1-od.Discount)/100))*100) AS ExtendedPrice
+FROM Operation.Products p INNER JOIN "Order Details" od ON p.ProductID = od.ProductID
+--ORDER BY od.OrderID
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
@@ -696,18 +679,17 @@ IF @@ERROR <> 0 SET NOEXEC ON
 GO
 PRINT N'Creating [Sales].[Sales by Category]'
 GO
-
 create view [Sales].[Sales by Category] AS
-SELECT Categories.CategoryID, Categories.CategoryName, Products.ProductName, 
-	Sum("Order Details Extended".ExtendedPrice) AS ProductSales
-FROM 	Categories INNER JOIN 
-		(Products INNER JOIN 
-			(Orders INNER JOIN "Order Details Extended" ON Orders.OrderID = "Order Details Extended".OrderID) 
-		ON Products.ProductID = "Order Details Extended".ProductID) 
-	ON Categories.CategoryID = Products.CategoryID
+SELECT Operation.Categories.CategoryID, Operation.Categories.CategoryName, Operation.Products.ProductName, 
+    Sum("Order Details Extended".ExtendedPrice) AS ProductSales
+FROM 	Operation.Categories INNER JOIN 
+        (Operation.Products INNER JOIN 
+            (Orders INNER JOIN "Order Details Extended" ON Orders.OrderID = "Order Details Extended".OrderID) 
+        ON Operation.Products.ProductID = "Order Details Extended".ProductID) 
+    ON Operation.Categories.CategoryID = Operation.Products.CategoryID
 WHERE Orders.OrderDate BETWEEN '19970101' And '19971231'
-GROUP BY Categories.CategoryID, Categories.CategoryName, Products.ProductName
---ORDER BY Products.ProductName
+GROUP BY Operation.Categories.CategoryID, Operation.Categories.CategoryName, Operation.Products.ProductName
+--ORDER BY Operation.Products.ProductName
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
@@ -717,8 +699,8 @@ GO
 create view [Sales].[Sales Totals by Amount] AS
 SELECT "Order Subtotals".Subtotal AS SaleAmount, Orders.OrderID, Customers.CompanyName, Orders.ShippedDate
 FROM 	Customers INNER JOIN 
-		(Orders INNER JOIN "Order Subtotals" ON Orders.OrderID = "Order Subtotals".OrderID) 
-	ON Customers.CustomerID = Orders.CustomerID
+        (Orders INNER JOIN "Order Subtotals" ON Orders.OrderID = "Order Subtotals".OrderID) 
+    ON Customers.CustomerID = Orders.CustomerID
 WHERE ("Order Subtotals".Subtotal >2500) AND (Orders.ShippedDate BETWEEN '19970101' And '19971231')
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
@@ -754,10 +736,9 @@ IF @OrdYear != '1996' AND @OrdYear != '1997' AND @OrdYear != '1998'
 BEGIN
 	SELECT @OrdYear = '1998'
 END
-
 SELECT ProductName,
 	TotalPurchase=ROUND(SUM(CONVERT(decimal(14,2), OD.Quantity * (1-OD.Discount) * OD.UnitPrice)), 0)
-FROM [Order Details] OD, Orders O, Products P, Categories C
+FROM [Order Details] OD, [Sales].Orders O, [Operation].Products P, [Operation].Categories C
 WHERE OD.OrderID = O.OrderID 
 	AND OD.ProductID = P.ProductID 
 	AND P.CategoryID = C.CategoryID
@@ -842,7 +823,7 @@ PRINT N'Adding foreign keys to [Logistics].[EmployeeTerritories]'
 GO
 ALTER TABLE [Logistics].[EmployeeTerritories] ADD CONSTRAINT [FK_EmployeeTerritories_Employees] FOREIGN KEY ([EmployeeID]) REFERENCES [Operation].[Employees] ([EmployeeID])
 GO
-ALTER TABLE [Logistics].[EmployeeTerritories] ADD CONSTRAINT [FK_EmployeeTerritories_Territories] FOREIGN KEY ([TerritoryID]) REFERENCES [Sales].[Territories[ ([TerritoryID])
+ALTER TABLE [Logistics].[EmployeeTerritories] ADD CONSTRAINT [FK_EmployeeTerritories_Territories] FOREIGN KEY ([TerritoryID]) REFERENCES [Sales].[Territories] ([TerritoryID])
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
@@ -854,28 +835,3 @@ IF @@ERROR <> 0 SET NOEXEC ON
 GO
 IF @@ERROR <> 0 SET NOEXEC ON
 GO
-
--- Sample Data Insertion
-
--- Adding Customers
-INSERT INTO Customers.Customer (FirstName, LastName, Email, DateOfBirth, Phone, Address)
-VALUES ('Huxley', 'Kendell', 'FlywayAP@Red-Gate.com', '2000-08-10', '555-1234', '123 Main St'),
-       ('Chris', 'Hawkins', 'Chrawkins@Red-Gate.com', '1971-07-20', '555-5678', '456 Elm St');
-
--- Adding Flights
-INSERT INTO Logistics.Flight (Airline, DepartureCity, ArrivalCity, DepartureTime, ArrivalTime, Price, AvailableSeats)
-VALUES ('Flyway Airlines', 'New York', 'London', '2024-11-20 10:00', '2024-11-20 20:00', 500.00, 150),
-       ('AutoPilot', 'Los Angeles', 'Tokyo', '2024-12-01 16:00', '2024-12-02 08:00', 800.00, 200);
-
--- Adding Orders
-INSERT INTO Sales.Orders (CustomerID, FlightID, OrderDate, Status, TotalAmount, TicketQuantity)
-VALUES (1, 1, GETDATE(), 'Confirmed', 500.00, 1),
-       (2, 2, GETDATE(), 'Pending', 1600.00, 2);
-
--- Adding Loyalty Programs
-INSERT INTO Customers.LoyaltyProgram (ProgramName, PointsMultiplier)
-VALUES ('Silver', 1.0), ('Gold', 1.5), ('Platinum', 2.0);
-
--- Adding Discount Codes
-INSERT INTO Sales.DiscountCode (Code, DiscountPercentage, ExpiryDate)
-VALUES ('FLY20', 20.00, '2024-12-31'), ('NEWYEAR', 10.00, '2025-01-04');
