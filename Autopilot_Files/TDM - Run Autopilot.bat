@@ -9,4 +9,4 @@ if %errorlevel% neq 0 (
 )
 
 :: Set the initial directory and run PowerShell as administrator
-powershell -NoProfile -NoExit -Command "& {Start-Process PowerShell -ArgumentList \"-NoProfile -NoExit -ExecutionPolicy Bypass -Command `\"Set-Location -Path 'C:\Git\Demos\TDM-Autopilot'; & .\run-tdm-autopilot.ps1 -skipAuth -autopilotAllDatabases`\"\" -Verb RunAs}"
+powershell -NoProfile -NoExit -Command "& {Start-Process PowerShell -ArgumentList \"-NoProfile -NoExit -ExecutionPolicy Bypass -Command `\"Set-Location -Path 'C:\Git\TDM-Autopilot'; & .\run-tdm-autopilot.ps1 -skipAuth -autopilotAllDatabases`\"\" -Verb RunAs}"

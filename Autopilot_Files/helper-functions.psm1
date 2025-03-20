@@ -152,8 +152,8 @@ Function New-SampleDatabasesAutopilotFull {
     $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
     $totalSubsetOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders    
     
-    if ($totalFullRestoreOrders -ne 1000){
-        Write-Error "    There should be 1000 rows in $sourceDb, but there are $totalFullRestoreOrders."
+    if ($totalFullRestoreOrders -ne 830){
+        Write-Error "    There should be 830 rows in $sourceDb, but there are $totalFullRestoreOrders."
         return $false
     }
     if ($totalSubsetOrders -ne 0){
@@ -205,8 +205,8 @@ Function New-SampleDatabasesAutopilot {
     $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
     $totalSubsetOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders    
     
-    if ($totalFullRestoreOrders -ne 1000){
-        Write-Error "    There should be 1000 rows in $sourceDb, but there are $totalFullRestoreOrders."
+    if ($totalFullRestoreOrders -ne 830){
+        Write-Error "    There should be 830 rows in $sourceDb, but there are $totalFullRestoreOrders."
         return $false
     }
     if ($totalSubsetOrders -ne 0){

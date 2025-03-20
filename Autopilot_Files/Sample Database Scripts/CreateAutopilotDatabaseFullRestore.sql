@@ -1,45 +1,3 @@
--- Flyway AutoPilot FastTrack Database Setup Script --
-
--- Drop AutoPilotDev database if it exists to ensure fresh setup
-IF DB_ID('AutoPilotDev') IS NOT NULL BEGIN
-    USE master;
-    ALTER DATABASE AutoPilotDev SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE AutoPilotDev;
-    PRINT 'AutoPilotDev Database Dropped';
-END;
-
--- Ensure each database exists, creating them if needed
-IF DB_ID('AutoPilotDev') IS NULL CREATE DATABASE AutoPilotDev;
-PRINT 'AutoPilotDev Database Created';
-IF DB_ID('AutoPilotTest') IS NULL CREATE DATABASE AutoPilotTest;
-PRINT 'AutoPilotTest Database Created';
-IF DB_ID('AutoPilotProd') IS NULL CREATE DATABASE AutoPilotProd;
-PRINT 'AutoPilotProd Database Created';
-IF DB_ID('AutoPilotCheck') IS NULL CREATE DATABASE AutoPilotCheck;
-PRINT 'AutoPilotCheck Database Created';
-IF DB_ID('AutoPilotBuild') IS NULL CREATE DATABASE AutoPilotBuild;
-PRINT 'AutoPilotBuild Database Created';
-IF DB_ID('AutoPilotShadow') IS NULL CREATE DATABASE AutoPilotShadow;
-PRINT 'AutoPilotShadow Database Created';
-GO
-USE AutoPilotDev;
-GO
-ALTER DATABASE AutoPilotDev SET MULTI_USER;
-GO
-SET NUMERIC_ROUNDABORT OFF;
-GO
-SET ANSI_PADDING, ANSI_WARNINGS, CONCAT_NULL_YIELDS_NULL, ARITHABORT, QUOTED_IDENTIFIER, ANSI_NULLS ON;
-GO
-SET XACT_ABORT ON;
-GO
-SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
-GO
-BEGIN TRANSACTION;
-GO
-IF @@ERROR<>0 SET NOEXEC ON;
-GO
-IF @@ERROR<>0 SET NOEXEC ON;
-GO
 PRINT N'Creating schemas';
 GO
 CREATE SCHEMA [Customers] AUTHORIZATION [dbo];
@@ -892,58 +850,8 @@ GO
 ALTER TABLE [Sales].[Territories]
 ADD CONSTRAINT [FK_Territories_Region] FOREIGN KEY([RegionID])REFERENCES [Logistics].[Region]([RegionID]);
 GO
-IF @@ERROR<>0 SET NOEXEC ON;
-GO
-COMMIT TRANSACTION;
-GO
-IF @@ERROR<>0 SET NOEXEC ON;
-GO
--- This statement writes to the SQL Server Log so SQL Monitor can show this deployment.
-IF HAS_PERMS_BY_NAME(N'sys.xp_logevent', N'OBJECT', N'EXECUTE')=1 BEGIN
-    DECLARE @databaseName AS NVARCHAR(2048), @eventMessage AS NVARCHAR(2048);
-    SET @databaseName=REPLACE(REPLACE(DB_NAME(), N'\', N'\\'), N'"', N'\"');
-    SET @eventMessage=N'Redgate SQL Compare: { "deployment": { "description": "Redgate SQL Compare deployed to '+@databaseName+N'", "database": "'+@databaseName+N'" }}';
-    EXECUTE sys.xp_logevent 55000, @eventMessage;
-END;
-GO
-DECLARE @Success AS BIT;
-SET @Success=1;
-SET NOEXEC OFF;
-IF(@Success=1)PRINT 'The database update succeeded';
-ELSE BEGIN
-    IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
-    PRINT 'The database update failed';
-END;
-GO
 
 -- Data Inserts -- 
-
-/*
-Run this script on:
-
-WIN2016.Autopilot_Final    -  This database will be modified
-
-to synchronize it with:
-
-WIN2016.AutoPilotDev
-
-You are recommended to back up your database before running this script
-
-Script created by SQL Data Compare version 14.7.8.21163 from Red Gate Software Ltd at 3/19/2025 4:17:21 PM
-
-*/
-
-SET NUMERIC_ROUNDABORT OFF;
-GO
-SET ANSI_PADDING, ANSI_WARNINGS, CONCAT_NULL_YIELDS_NULL, ARITHABORT, QUOTED_IDENTIFIER, ANSI_NULLS, NOCOUNT ON;
-GO
-SET DATEFORMAT YMD;
-GO
-SET XACT_ABORT ON;
-GO
-SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
-GO
-BEGIN TRANSACTION;
 PRINT(N'Drop constraints from [Sales].[Order Details]');
 ALTER TABLE [Sales].[Order Details] NOCHECK CONSTRAINT [FK_Order_Details_Orders];
 ALTER TABLE [Sales].[Order Details] NOCHECK CONSTRAINT [FK_Order_Details_Products];
@@ -7637,5 +7545,3 @@ ALTER TABLE [Operation].[Products] CHECK CONSTRAINT [FK_Products_Suppliers];
 ALTER TABLE [Sales].[CustomersFeedback] WITH CHECK CHECK CONSTRAINT [FK__Customers__Custo__286302EC];
 PRINT(N'Add constraints to [Operation].[Employees]');
 ALTER TABLE [Operation].[Employees] CHECK CONSTRAINT [FK_Employees_Employees];
-COMMIT TRANSACTION;
-GO
