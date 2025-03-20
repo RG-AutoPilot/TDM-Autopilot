@@ -18,15 +18,15 @@ if ($autopilotAllDatabases){
     $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd"
     $targetDb = "AutopilotTreated"
-    $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample Database Scripts\CreateAutopilotDatabaseFullRestore.sql"
-    $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample Database Scripts\CreateAutopilotDatabaseSubset.sql"
-    $subsetterOptionsFile = "$PSScriptRoot\Autopilot_Files\Sample Database Scripts\rgsubset-options-autopilot.json"
+    $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateAutopilotDatabaseFullRestore.sql"
+    $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSubset.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\rgsubset-options-autopilot.json"
 } else {
     $sourceDb = "${databaseName}_FullRestore"
     $targetDb = "${databaseName}_Subset"
-    $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample Database Scripts\CreateNorthwindFullRestore.sql"
-    $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample Database Scripts\CreateNorthwindSubset.sql"
-    $subsetterOptionsFile = "$PSScriptRoot\Autopilot_Files\Sample Database Scripts\rgsubset-options-northwind.json"
+    $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateNorthwindFullRestore.sql"
+    $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateNorthwindSubset.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\rgsubset-options-northwind.json"
 }
 
 $installTdmClisScript = "$PSScriptRoot\Autopilot_Files\installTdmClis.ps1"
