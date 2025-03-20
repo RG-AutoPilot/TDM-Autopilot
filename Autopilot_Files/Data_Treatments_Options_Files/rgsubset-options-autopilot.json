@@ -4,8 +4,8 @@
     { 
       "table":
       {
-        "schema": "Customers",
-        "name": "Customer"
+        "schema": "Sales",
+        "name": "Customers"
       },
       "filterClause": "CustomerID > 500"
     }
