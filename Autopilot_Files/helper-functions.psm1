@@ -114,10 +114,10 @@ Function New-SampleDatabasesAutopilotFull {
     # If exists, drop the source and target databases
     Write-Verbose "  If exists, dropping the source and target databases"
     if ($winAuth){
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotTest','AutopilotShadow', 'AutopilotCheck'
+        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotShadow', 'AutopilotCheck'
     }
     else {
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotTest','AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential
+        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential
     }
 
     forEach ($db in $dbsToDelete.Name){
@@ -128,7 +128,7 @@ Function New-SampleDatabasesAutopilotFull {
 
     # Create the fullRestore and subset databases
     Write-Verbose "  Creating the fullRestore and subset databases"
-    New-DbaDatabase -SqlInstance $sqlInstance -Name $sourceDb, $targetDb, 'AutopilotBuild', 'AutopilotTest', 'AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential | Out-Null
+    New-DbaDatabase -SqlInstance $sqlInstance -Name $sourceDb, $targetDb, 'AutopilotBuild', 'AutopilotDev', 'AutopilotTest', 'AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential | Out-Null
     
     Write-Verbose "    Creating the $sourceDb database objects and data"
     Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $fullRestoreCreateScript -SqlCredential $SqlCredential | Out-Null
@@ -138,6 +138,9 @@ Function New-SampleDatabasesAutopilotFull {
 	
 	Write-Verbose "    Creating the AutopilotBuild database objects"
     Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotBuild' -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
+
+    Write-Verbose "    Creating the AutopilotDev database objects"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotDev'-File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
 	
 	Write-Verbose "    Creating the 'AutopilotTest' database objects"
     Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotTest' -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
