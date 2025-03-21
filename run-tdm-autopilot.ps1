@@ -16,7 +16,7 @@ param (
 # Configuration
 if ($autopilotAllDatabases){
     $databaseName = "Autopilot"
-    $sourceDb = "AutopilotProd"
+    $sourceDb = "AutopilotProd_FullRestore"
     $targetDb = "AutopilotTreated"
     $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateAutopilotDatabaseFullRestore.sql"
     $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSubset.sql"
