@@ -5,9 +5,9 @@
       "table":
       {
         "schema": "Sales",
-        "name": "Customers"
+        "name": "Orders"
       },
-      "filterClause": "CustomerID > 500"
+      "filterClause": "OrderId < 10260"
     }
   ],
   "includeTableRowsThreshold": 1
