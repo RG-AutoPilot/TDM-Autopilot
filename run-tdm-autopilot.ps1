@@ -18,19 +18,20 @@ if ($autopilotAllDatabases){
     $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd_FullRestore"
     $targetDb = "AutopilotTreated"
-    $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateAutopilotDatabaseFullRestore.sql"
-    $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSubset.sql"
-    $subsetterOptionsFile = "$PSScriptRoot\Autopilot_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
-} else {
+    $schemaCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSchemaOnly.sql"
+    $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
+    $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
+} else {    
     $sourceDb = "${databaseName}_FullRestore"
     $targetDb = "${databaseName}_Subset"
-    $fullRestoreCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateNorthwindFullRestore.sql"
-    $subsetCreateScript = "$PSScriptRoot\Autopilot_Files\Sample_Database_Scripts\CreateNorthwindSubset.sql"
-    $subsetterOptionsFile = "$PSScriptRoot\Autopilot_Files\Data_Treatments_Options_Files\rgsubset-options-northwind.json"
+    $fullRestoreCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateNorthwindFullRestore.sql"
+    $subsetCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateNorthwindSubset.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-northwind.json"
 }
 
-$installTdmClisScript = "$PSScriptRoot\Autopilot_Files\installTdmClis.ps1"
-$helperFunctions = "$PSScriptRoot\Autopilot_Files\helper-functions.psm1"
+$installTdmClisScript = "$PSScriptRoot\Setup_Files\installTdmClis.ps1"
+$helperFunctions = "$PSScriptRoot\Setup_Files\helper-functions.psm1"
 
 $winAuth = $true
 $sourceConnectionString = ""
@@ -198,10 +199,10 @@ else {
   if ($autopilotAllDatabases) {
     # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
     # Used to restore ALL autopilot databases, rather than just two which is the default
-    Write-Output "  Building all sample Autopilot databases."
-    $dbCreateSuccessful = New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
+    Write-Output "  Starting database creation process..."
+    New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential | Tee-Object -Variable dbCreateSuccessful
     if ($dbCreateSuccessful){
-        Write-Output "    All Autopilot Databases successfully created."
+        Write-Host "All databases created and validated successfully." -ForegroundColor Green
     }
     else {
         Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
@@ -223,7 +224,7 @@ else {
 }
 
 # Clean output directory
-Write-Output "  Cleaning the output directory at: $output"
+Write-Output "    Cleaning the output directory at: $output"
 if (Test-Path $output){
     Write-Output "    Recursively deleting the existing output directory, and any files from previous runs."
     Remove-Item -Recurse -Force $output | Out-Null
@@ -254,9 +255,9 @@ if ($autopilotAllDatabases) {
     Write-Output "                  o.CustomerID AS 'o.CustomerID' ,"
     Write-Output "                  o.ShipAddress AS 'o.ShipAddress' ,"
     Write-Output "                  o.ShipCity AS 'o.ShipCity' ,"
-    Write-Output "                  c.ContactName AS 'o.ContactName' ,"
     Write-Output "                  c.Address AS 'c.Address' ,"
-    Write-Output "                  c.City AS 'c.ShipCity'"
+    Write-Output "                  c.City AS 'c.ShipCity' ,"
+    Write-Output "                  c.ContactName AS 'c.ContactName'"
     Write-Output "  FROM     Sales.Customers c"
     Write-Output "           JOIN Sales.Orders o ON o.CustomerID = c.CustomerID"
     Write-Output "  ORDER BY o.OrderID ASC;"
@@ -307,7 +308,7 @@ function Prompt-Continue {
         while ($continueLoop) {
             $continue = Read-Host "Continue? (y/n)"
             switch ($continue.ToLower()) {
-                "y" { Write-Output 'User chose to continue.'; $continueLoop = $false }
+                "y" { Write-Verbose 'User chose to continue.'; $continueLoop = $false }
                 "n" { Write-Output 'User chose "n". Terminating script.'; exit }
                 default { Write-Output 'Invalid response. Please enter "y" or "n".' }
             }
@@ -396,7 +397,7 @@ Write-Output "  - Notes fields (e.g. Employees.Notes)"
 Write-Output "  - Dependencies (e.g. If using the sample Northwind database, observer the Orders.ShipAddress and Customers.Address, joined on the CustoemrID column in each table"
 Write-Output ""
 Write-Output "Additional tasks:"
-Write-Output "Review both rgsubset-options.json examples in ./Autopilot_Files, as well as this documentation about using options files:"
+Write-Output "Review both rgsubset-options.json examples in ./Setup_Files, as well as this documentation about using options files:"
 Write-Output "  https://documentation.red-gate.com/testdatamanager/command-line-interface-cli/subsetting/subsetting-configuration/subsetting-configuration-file"
 Write-Output "To apply a more thorough mask on the notes fields, review this documentation, and configure this project to a Lorem Ipsum"
 Write-Output "  masking rule for any 'notes' fields:"

@@ -106,8 +106,9 @@ Function New-SampleDatabasesAutopilotFull {
         [Parameter(Mandatory = $true)][string]$sqlInstance,
         [Parameter(Mandatory = $true)][string]$sourceDb,
         [Parameter(Mandatory = $true)][string]$targetDb,
-        [Parameter(Mandatory = $true)][string]$fullRestoreCreateScript,
-        [Parameter(Mandatory = $true)][string]$subsetCreateScript,
+        [Parameter(Mandatory = $true)][string]$schemaCreateScript,
+        [Parameter(Mandatory = $true)][string]$productionDataInsertScript,
+        [Parameter(Mandatory = $true)][string]$testDataInsertScript,
         [PSCredential]$SqlCredential
     )
 
@@ -127,34 +128,29 @@ Function New-SampleDatabasesAutopilotFull {
     }
 
     # Create the fullRestore and subset databases
-    Write-Verbose "  Creating the fullRestore and subset databases"
+    Write-Host "  Creating the empty Autopilot Databases"
     New-DbaDatabase -SqlInstance $sqlInstance -Name $sourceDb, $targetDb, 'AutopilotBuild', 'AutopilotDev', 'AutopilotTest', 'AutopilotProd', 'AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential | Out-Null
     
-    Write-Verbose "    Creating the $sourceDb database objects and data"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $fullRestoreCreateScript -SqlCredential $SqlCredential | Out-Null
+    Write-Host "    Building up the $sourceDb database"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $productionDataInsertScript -SqlCredential $SqlCredential | Out-Null
+
+    Write-Host "    Building up the AutopilotProd database"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotProd' -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotProd' -File $productionDataInsertScript -SqlCredential $SqlCredential | Out-Null
     
-    Write-Verbose "    Creating the $targetDb database objects"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
-
-    Write-Verbose "    Creating the AutopilotProd database objects and data"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotProd'  -File $fullRestoreCreateScript -SqlCredential $SqlCredential | Out-Null
+    Write-Host "    Building up the $targetDb database"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
 	
-	Write-Verbose "    Creating the AutopilotBuild database objects"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotBuild' -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
-
-    Write-Verbose "    Creating the AutopilotDev database objects"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotDev'-File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
+    Write-Host "    Building up the AutopilotDev database"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotDev' -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotDev' -File $testDataInsertScript -SqlCredential $SqlCredential | Out-Null
 	
-	Write-Verbose "    Creating the 'AutopilotTest' database objects"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotTest' -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
-	
-	Write-Verbose "    Creating the 'AutopilotShadow' database objects"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotShadow' -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
-
-    Write-Verbose "    Creating the 'AutopilotShadow' database objects"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotCheck' -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
+	Write-Host "    Building up the AutopilotTest database"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotTest' -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotTest' -File $testDataInsertScript -SqlCredential $SqlCredential | Out-Null
     
-    Write-Verbose "  Validating that the databases have been created correctly"
+    Write-Host "  Validating that the databases have been created correctly"
     $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
     $totalSubsetOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders    
     
@@ -177,8 +173,9 @@ Function New-SampleDatabasesAutopilot {
         [Parameter(Mandatory = $true)][string]$sqlInstance,
         [Parameter(Mandatory = $true)][string]$sourceDb,
         [Parameter(Mandatory = $true)][string]$targetDb,
-        [Parameter(Mandatory = $true)][string]$fullRestoreCreateScript,
-        [Parameter(Mandatory = $true)][string]$subsetCreateScript,
+        [Parameter(Mandatory = $true)][string]$schemaCreateScript,
+        [Parameter(Mandatory = $true)][string]$productionDataInsertScript,
+        [Parameter(Mandatory = $true)][string]$testDataInsertScript,
         [PSCredential]$SqlCredential
     )
 
@@ -198,14 +195,16 @@ Function New-SampleDatabasesAutopilot {
     }
 
     # Create the fullRestore and subset databases
-    Write-Verbose "  Creating the fullRestore and subset databases"
+    Write-Verbose "  Creating the empty Autopilot databases"
     New-DbaDatabase -SqlInstance $sqlInstance -Name $sourceDb, $targetDb -SqlCredential $SqlCredential | Out-Null
     
-    Write-Verbose "    Creating the $sourceDb database objects and data"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $fullRestoreCreateScript -SqlCredential $SqlCredential | Out-Null
+    Write-Verbose "    Building up the $sourceDb database"
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $productionDataInsertScript -SqlCredential $SqlCredential | Out-Null
     
-    Write-Verbose "    Creating the $targetDb database objects"
+    Write-Verbose "    Building up the $targetDb database"
     Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $testDataInsertScript -SqlCredential $SqlCredential | Out-Null
     
     Write-Verbose "  Validating that the databases have been created correctly"
     $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
