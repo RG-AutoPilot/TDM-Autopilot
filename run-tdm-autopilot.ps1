@@ -160,15 +160,40 @@ if (-not $iAgreeToTheRedgateEula){
     }
 }
 
-# Installing/importing dbatools
-Write-Output "  Installing dbatools"
-$dbatoolsInstalledSuccessfully = Install-Dbatools -autoContinue:$autoContinue -trustCert:$trustCert
-if ($dbatoolsInstalledSuccessfully){
-    Write-Output "    dbatools installed successfully"
+# Check if dbatools is installed
+if (-not (Get-Module -ListAvailable -Name dbatools)) {
+    Write-Host ""
+    Write-Warning "The required module 'dbatools' is not currently installed."
+    Write-Host "It is needed to continue running this script."
+    Write-Host ""
+    Write-Host "Installing dbatools requires administrative privileges." -ForegroundColor Yellow
+    $installNow = Read-Host "Would you like to install it now? (Y/N)"
+
+    if ($installNow -match '^(Y|y)$') {
+        try {
+            # Attempt to install with elevated privileges
+            Install-Dbatools -autoContinue:$autoContinue -trustCert:$trustCert
+            Write-Host "dbatools has been installed successfully." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to install dbatools. Please install it manually or run this script as Administrator."
+            exit 1
+        }
+    }
+    else {
+        Write-Warning "Skipping installation of dbatools. Please ensure it is installed before continuing."
+        Write-Host "You can install it manually by running:"
+        Write-Host "Install-Module dbatools -Scope CurrentUser -AllowClobber" -ForegroundColor Cyan
+        Write-Host ""
+        $continueAnyway = Read-Host "Do you want to continue anyway? (Y/N)"
+        if ($continueAnyway -notmatch '^(Y|y)$') {
+            Write-Host "Exiting setup. Please install dbatools and re-run the script."
+            exit 1
+        }
+    }
 }
 else {
-    Write-Error "    dbatools failed to install. Please review any errors above."
-    break
+    Write-Host "dbatools module is already installed." -ForegroundColor Green
 }
 
 if (-not $autoContinue) {
