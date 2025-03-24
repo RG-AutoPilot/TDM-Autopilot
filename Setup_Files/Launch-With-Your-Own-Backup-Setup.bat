@@ -3,7 +3,9 @@
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo This script requires administrator privileges.
-    echo Please run as administrator.
+    echo By default this process will download and install the relevant Redgate Software files.
+    echo If you'd prefer to run without admin privileges, please install DBA-Tools/Redgate TDM CLIs
+    echo Please re-run as administrator or run 'run-tdm-autopilot.ps1' directly without administrative permissions.
     pause
     exit /b
 )
