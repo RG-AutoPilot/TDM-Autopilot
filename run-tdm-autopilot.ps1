@@ -5,7 +5,7 @@ param (
     $output = "C:\temp\tdm-autopilot", # Temporary location to write Autopilot log files to
     $trustCert = $true,
     $backupPath = "", # Optional - Pass in a backup file location to be used with Autopilot
-    $databaseName = "Northwind", # Set to your preferred target database name
+    $databaseName = "Autopilot", # Set to your preferred target database name
     $sampleDatabase = "", # Set to either Northwind/Autopilot/Autopilot_Full/Backup or leave blank for the default 'Autopilot' option
     [switch]$autoContinue, # Set to true to enable non-interactive mode (Valuable for pipeline automation)
     [switch]$skipAuth, # Set to true to skip the CLI authentication steps
@@ -17,7 +17,7 @@ param (
 if ($sampleDatabase -eq 'Autopilot_Full') {
     $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd_FullRestore"
-    $targetDb = "AutopilotTreated"
+    $targetDb = "Autopilot_Treated"
     $schemaCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSchemaOnly.sql"
     $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
     $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
@@ -26,7 +26,7 @@ if ($sampleDatabase -eq 'Autopilot_Full') {
 } elseif ($sampleDatabase -eq 'Autopilot') {
     $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd_FullRestore"
-    $targetDb = "AutopilotTreated"
+    $targetDb = "Autopilot_Treated"
     $schemaCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSchemaOnly.sql"
     $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
     $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
