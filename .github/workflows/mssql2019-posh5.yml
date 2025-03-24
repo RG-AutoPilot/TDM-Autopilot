@@ -174,7 +174,7 @@ jobs:
           
           # Validating rgsubset
           $totalOrders = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database Autopilot_Treated -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
-          Write-Output "If rgsubset ran successfully, there should be 830 orders in the Autopilot_Treated database"
+          Write-Output "If rgsubset ran successfully, there should be 12 orders in the Autopilot_Treated database"
           Write-Output "Total Orders: $totalOrders"
           if ($totalOrders -eq 12) {
             Write-Output "rgsubset ran successfully"
@@ -184,8 +184,8 @@ jobs:
           }
 
           # Validating rganonymize
-          $customerHANARAddress = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database Autopilot_Treated -Query "SELECT Address FROM Sales.Customers WHERE CustomerID = HANAR" -SqlCredential $SqlCredential).Address
-          Write-Output "If rganonymize ran successfully, Customer HANAR should NOT be Rua do Paço, 67"
+          $customerHANARAddress = (Invoke-DbaQuery -SqlInstance '${{ steps.createDc.outputs.instance }}' -Database Autopilot_Treated -Query "SELECT ShipAddress FROM Sales.Orders WHERE CustomerID = 'HANAR'" -SqlCredential $SqlCredential).Address
+          Write-Output "If rganonymize ran successfully, Customer HANAR should NOT be 'Rua do Paço, 67'"
           Write-Output "Address: $customerHANARAddress"
           if ($customerHANARAddress -like "Rua do Paço, 67") {
             Write-Error "rganonymize did not run successfully"
