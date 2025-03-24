@@ -1,18 +1,26 @@
 @echo off
-:: Check if the script is running as an administrator
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo This script requires administrator privileges.
-    echo By default this process will download and install the relevant Redgate Software files.
-    echo If you'd prefer to run without admin privileges, please install DBA-Tools/Redgate TDM CLIs
-    echo Please re-run as administrator or run 'run-tdm-autopilot.ps1' directly without administrative permissions.
-    pause
-    exit /b
-)
+setlocal
 
-:: Get the directory where the batch file is located and set parent folder
+:: Get directory where this batch file lives, then go up one folder
 set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%\..") do set "PARENT_DIR=%%~fI"
+set "SCRIPT_PATH=%PARENT_DIR%\run-tdm-autopilot.ps1"
 
-:: Set the working directory dynamically and run PowerShell as administrator
-powershell -NoProfile -NoExit -Command "& {Start-Process PowerShell -ArgumentList \"-NoProfile -NoExit -ExecutionPolicy Bypass -Command `\"Set-Location -Path '%PARENT_DIR%'; & .\run-tdm-autopilot.ps1 -skipAuth -sampleDatabase Autopilot`\"\" -Verb RunAs}"
+:: Ask the user if they want to run as administrator
+set /p runAsAdmin=Do you want to run PowerShell as administrator? - Recommended (Y/N): 
+
+:: Trim and normalize input
+set "runAsAdmin=%runAsAdmin:~0,1%"
+
+:: Build the PowerShell argument string
+set "ARG_STRING=-NoProfile -NoExit -ExecutionPolicy Bypass -File \"%SCRIPT_PATH%\" -skipAuth -sampleDatabase Autopilot"
+
+if /I "%runAsAdmin%"=="Y" (
+    powershell -NoProfile -Command ^
+        "Start-Process PowerShell -Verb RunAs -ArgumentList '%ARG_STRING%'"
+) else (
+    powershell -NoProfile -Command ^
+        "Start-Process PowerShell -ArgumentList '%ARG_STRING%'"
+)
+
+endlocal
