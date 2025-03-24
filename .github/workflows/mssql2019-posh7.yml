@@ -52,7 +52,7 @@ jobs:
           $imageStatus = ($output | ConvertFrom-Json).Status
           if ($output -eq $null -or $output -eq "") {
               Write-Output "Image does not exist. Creating image..."
-              .\rgclone create di -f .\Autopilot_Files\Image_Definitions\empty-image-2019.yaml
+              .\rgclone create di -f .\Setup_Files\Image_Definitions\empty-image-2019.yaml
           } 
           elseif ($imageStatus -like "Completed") {
               Write-Output "Image already exists. Moving on..."
