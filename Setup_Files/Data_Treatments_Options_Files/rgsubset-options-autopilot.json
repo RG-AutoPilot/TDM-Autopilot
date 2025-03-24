@@ -10,5 +10,33 @@
       "filterClause": "OrderId < 10260"
     }
   ],
-  "includeTableRowsThreshold": 1
+  "staticDataTables": [
+    {
+      "schema": "Logistics",
+      "name": "Region"
+    }
+  ],
+  "excludedTables": [
+    {
+      "schema": "Sales",
+      "name": "OrderAuditLog"
+    }
+  ],
+  "manualRelationships": [
+    {
+      "sourceTable": 
+        { 
+          "schema": "Sales", 
+          "name": "Customers"
+        },
+      "sourceColumns": [ "CustomerID" ],
+      "targetTable": 
+        { 
+          "schema": "Sales", 
+          "name": "Orders" 
+        },
+      "targetColumns": [ "CustomerID" ]
+     }
+  ],
+  "includeTablesRowThreshold": 1
 }

@@ -2,19 +2,19 @@ param (
     $sqlInstance = "localhost",
     $sqlUser = "",
     $sqlPassword = "",
-    $output = "C:\temp\tdm-autopilot",
+    $output = "C:\temp\tdm-autopilot", # Temporary location to write Autopilot log files to
     $trustCert = $true,
-    $backupPath = "",
-    $databaseName = "Northwind",
-    [switch]$autoContinue,
-    [switch]$skipAuth,
-    [switch]$autopilotAllDatabases,
-    [switch]$noRestore,
+    $backupPath = "", # Optional - Pass in a backup file location to be used with Autopilot
+    $databaseName = "Northwind", # Set to your preferred target database name
+    $sampleDatabase = "", # Set to either Northwind/Autopilot/Autopilot_Full/Backup or leave blank for the default 'Autopilot' option
+    [switch]$autoContinue, # Set to true to enable non-interactive mode (Valuable for pipeline automation)
+    [switch]$skipAuth, # Set to true to skip the CLI authentication steps
+    [switch]$noRestore, # Set to true to skip all database provisioning steps. Ensure Source and Target Database already present.
     [switch]$iAgreeToTheRedgateEula
 )
 
-# Configuration
-if ($autopilotAllDatabases){
+# Configuration block based on $sampleDatabase selection
+if ($sampleDatabase -eq 'Autopilot_Full') {
     $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd_FullRestore"
     $targetDb = "AutopilotTreated"
@@ -22,12 +22,61 @@ if ($autopilotAllDatabases){
     $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
     $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
     $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
-} else {    
+
+} elseif ($sampleDatabase -eq 'Autopilot') {
+    $databaseName = "Autopilot"
+    $sourceDb = "AutopilotProd_FullRestore"
+    $targetDb = "AutopilotTreated"
+    $schemaCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSchemaOnly.sql"
+    $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
+    $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
+
+} elseif ($sampleDatabase -eq 'Northwind') {
+    $databaseName = "Northwind"
     $sourceDb = "${databaseName}_FullRestore"
     $targetDb = "${databaseName}_Subset"
     $fullRestoreCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateNorthwindFullRestore.sql"
     $subsetCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateNorthwindSubset.sql"
     $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-northwind.json"
+
+} elseif ((-not $sampleDatabase -and -not [string]::IsNullOrWhiteSpace($backupPath)) -or ($sampleDatabase -eq 'backup')) {
+    # If backupPath is provided or sampleDatabase set to backup use Custom Backup Method
+    $databaseName = "Backup"
+    $sourceDb = "${databaseName}_FullRestore"
+    $targetDb = "${databaseName}_Subset"
+    $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-backup.json"
+
+    # Check if backupPath is already set
+    if (-not [string]::IsNullOrWhiteSpace($backupPath)) {
+        Write-Host "   Using backup path provided: $backupPath"
+    }
+
+    else {
+        # Prompt user to enter backup path
+        $backupPath = Read-Host "Please enter the full path to the backup file (.bak)"
+
+        # Remove surrounding quotes if user included them
+        $backupPath = $backupPath.Trim('"')
+        
+        if (-not (Test-Path $backupPath)) {
+            Write-Error "The path you entered does not exist. Please check the path and try again."
+            break
+        }
+        Write-Host "   Backup path set to: $backupPath"
+    }
+
+    Write-Host "   Custom source/target DBs will be: $sourceDb → $targetDb"
+
+} else {
+    # Default fallback behavior
+    $databaseName = "Autopilot"
+    $sourceDb = "AutopilotProd_FullRestore"
+    $targetDb = "AutopilotTreated"
+    $schemaCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSchemaOnly.sql"
+    $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
+    $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
+    $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
 }
 
 $installTdmClisScript = "$PSScriptRoot\Setup_Files\installTdmClis.ps1"
@@ -53,8 +102,18 @@ Write-Output "- sqlInstance:             $sqlInstance"
 Write-Output "- databaseName:            $databaseName"
 Write-Output "- sourceDb:                $sourceDb"
 Write-Output "- targetDb:                $targetDb"  
+if (-not [string]::IsNullOrWhiteSpace($backupPath)) {
+# Don't output any script paths if a backup is provided
+Write-Output "- backupPath:              $backupPath"
+}
+elseif ($sampleDatabase -eq 'Autopilot_Full' -or $sampleDatabase -eq 'Autopilot') {
+Write-Output "- schemaScript:            $schemaCreateScript"
+Write-Output "- InsertScript:            $productionDataInsertScript"
+}
+else {
 Write-Output "- fullRestoreCreateScript: $fullRestoreCreateScript"
 Write-Output "- subsetCreateScript:      $subsetCreateScript"
+}
 Write-Output "- installTdmClisScript:    $installTdmClisScript"
 Write-Output "- helperFunctions:         $helperFunctions"
 Write-Output "- subsetterOptionsFile:    $subsetterOptionsFile"
@@ -63,8 +122,7 @@ Write-Output "- sourceConnectionString:  $sourceConnectionString"
 Write-Output "- targetConnectionString:  $targetConnectionString"
 Write-Output "- output:                  $output"
 Write-Output "- trustCert:               $trustCert"
-Write-Output "- backupPath:              $backupPath"
-Write-Output "- autopilotAllDatabases:   $autopilotAllDatabases"
+Write-Output "- sampleDatabase:          $sampleDatabase"
 Write-Output "- noRestore:               $noRestore"
 Write-Output ""
 Write-Output "Initial setup:"
@@ -182,9 +240,7 @@ if ($noRestore){
     Write-Output "Please ensure that the source and target databases are already created and available on the $sqlInstance server."
     Write-Output "*********************************************************************************************************"
 }
-else {
-    # Building staging databases
-  if ($backupPath) {
+elseif ($backupPath) {
     # Using the Restore-StagingDatabasesFromBackup function in helper-functions.psm1 to build source and target databases from an existing backup
     Write-Output "  Building $sourceDb and $targetDb databases from backup file saved at $BackupPath."
     $dbCreateSuccessful = Restore-StagingDatabasesFromBackup -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -sourceBackupPath:$backupPath -SqlCredential:$SqlCredential
@@ -195,8 +251,8 @@ else {
         Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
         break
     }
-  }
-  if ($autopilotAllDatabases) {
+}
+elseif ($sampleDatabase -eq "Autopilot_Full") {
     # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
     # Used to restore ALL autopilot databases, rather than just two which is the default
     Write-Output "  Starting database creation process..."
@@ -208,19 +264,45 @@ else {
         Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
         break
     }
-  }
-  else {
+}
+elseif ($sampleDatabase -eq "Autopilot") {
     # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
-    Write-Output "  Building sample source and target databases."
-    $dbCreateSuccessful = New-SampleDatabases -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
+    # Used to restore ALL autopilot databases, rather than just two which is the default
+    Write-Output "  Starting database creation process..."
+    New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential | Tee-Object -Variable dbCreateSuccessful
     if ($dbCreateSuccessful){
-        Write-Output "    Source and target databases created successfully."
+        Write-Host "All databases created and validated successfully." -ForegroundColor Green
     }
     else {
         Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
         break
     }
-  }
+}
+elseif ($sampleDatabase -eq "Northwind") {
+    # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
+    Write-Output "  Building sample source and target databases."
+    $dbCreateSuccessful = New-SampleDatabases -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
+    if ($dbCreateSuccessful){
+        Write-Host "All databases created and validated successfully." -ForegroundColor Green
+    }
+    else {
+        Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
+        break
+    }
+}
+else {
+    # Default to Autopilot databases
+    # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
+    # Used to restore ALL autopilot databases, rather than just two which is the default
+    Write-Output "  Starting database creation process..."
+    New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential | Tee-Object -Variable dbCreateSuccessful
+    if ($dbCreateSuccessful){
+        Write-Host "All databases created and validated successfully." -ForegroundColor Green
+    }
+    else {
+        Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
+        break
+    }
 }
 
 # Clean output directory
@@ -240,7 +322,28 @@ Write-Output "$sourceDb should contain some data"
 if ($backupPath){
     Write-Output "$targetDb should be identical. In an ideal world, it would be schema identical, but empty of data."
 }
-if ($autopilotAllDatabases) {
+if ($sampleDatabase -eq "Northwind") {
+    Write-Output "$targetDb should have an identical schema, but no data"
+    Write-Output ""
+    Write-Output "For example, you could run the following script in your prefered IDE:"
+    Write-Output ""
+    Write-Output "  USE $sourceDb"
+    Write-Output "  --USE $targetDb -- Uncomment to run the same query on the target database"
+    Write-Output "  "
+    Write-Output "  SELECT COUNT (*) AS TotalOrders"
+    Write-Output "  FROM   dbo.Orders;"
+    Write-Output "  "
+    Write-Output "  SELECT   TOP 20 o.OrderID AS 'o.OrderId' ,"
+    Write-Output "                  o.CustomerID AS 'o.CustomerID' ,"
+    Write-Output "                  o.ShipAddress AS 'o.ShipAddress' ,"
+    Write-Output "                  o.ShipCity AS 'o.ShipCity' ,"
+    Write-Output "                  c.Address AS 'c.Address' ,"
+    Write-Output "                  c.City AS 'c.ShipCity'"
+    Write-Output "  FROM     dbo.Customers c"
+    Write-Output "           JOIN dbo.Orders o ON o.CustomerID = c.CustomerID"
+    Write-Output "  ORDER BY o.OrderID ASC;"
+}
+else {
     Write-Output "$targetDb should have an identical schema, but no data"
     Write-Output ""
     Write-Output "For example, you could run the following script in your prefered IDE:"
@@ -262,27 +365,7 @@ if ($autopilotAllDatabases) {
     Write-Output "           JOIN Sales.Orders o ON o.CustomerID = c.CustomerID"
     Write-Output "  ORDER BY o.OrderID ASC;"
 }
-else {
-    Write-Output "$targetDb should have an identical schema, but no data"
-    Write-Output ""
-    Write-Output "For example, you could run the following script in your prefered IDE:"
-    Write-Output ""
-    Write-Output "  USE $sourceDb"
-    Write-Output "  --USE $targetDb -- Uncomment to run the same query on the target database"
-    Write-Output "  "
-    Write-Output "  SELECT COUNT (*) AS TotalOrders"
-    Write-Output "  FROM   dbo.Orders;"
-    Write-Output "  "
-    Write-Output "  SELECT   TOP 20 o.OrderID AS 'o.OrderId' ,"
-    Write-Output "                  o.CustomerID AS 'o.CustomerID' ,"
-    Write-Output "                  o.ShipAddress AS 'o.ShipAddress' ,"
-    Write-Output "                  o.ShipCity AS 'o.ShipCity' ,"
-    Write-Output "                  c.Address AS 'c.Address' ,"
-    Write-Output "                  c.City AS 'c.ShipCity'"
-    Write-Output "  FROM     dbo.Customers c"
-    Write-Output "           JOIN dbo.Orders o ON o.CustomerID = c.CustomerID"
-    Write-Output "  ORDER BY o.OrderID ASC;"
-}
+
 Write-Output ""
 Write-Output "Next:"
 Write-Output "We will run the following rgsubset command to copy a subset of the data from $sourceDb to $targetDb."

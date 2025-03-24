@@ -203,8 +203,7 @@ Function New-SampleDatabasesAutopilot {
     Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $productionDataInsertScript -SqlCredential $SqlCredential | Out-Null
     
     Write-Verbose "    Building up the $targetDb database"
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $subsetCreateScript -SqlCredential $SqlCredential | Out-Null
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $testDataInsertScript -SqlCredential $SqlCredential | Out-Null
+    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
     
     Write-Verbose "  Validating that the databases have been created correctly"
     $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
