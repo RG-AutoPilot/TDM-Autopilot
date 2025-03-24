@@ -32,14 +32,6 @@ if ($sampleDatabase -eq 'Autopilot_Full') {
     $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
     $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
 
-} elseif ($sampleDatabase -eq 'Northwind') {
-    $databaseName = "Northwind"
-    $sourceDb = "${databaseName}_FullRestore"
-    $targetDb = "${databaseName}_Subset"
-    $fullRestoreCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateNorthwindFullRestore.sql"
-    $subsetCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateNorthwindSubset.sql"
-    $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-northwind.json"
-
 } elseif ((-not $sampleDatabase -and -not [string]::IsNullOrWhiteSpace($backupPath)) -or ($sampleDatabase -eq 'backup')) {
     # If backupPath is provided or sampleDatabase set to backup use Custom Backup Method
     $databaseName = "Backup"
@@ -72,7 +64,7 @@ if ($sampleDatabase -eq 'Autopilot_Full') {
     # Default fallback behavior
     $databaseName = "Autopilot"
     $sourceDb = "AutopilotProd_FullRestore"
-    $targetDb = "AutopilotTreated"
+    $targetDb = "Autopilot_Treated"
     $schemaCreateScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseSchemaOnly.sql"
     $productionDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseProductionData.sql"
     $testDataInsertScript = "$PSScriptRoot\Setup_Files\Sample_Database_Scripts\CreateAutopilotDatabaseTestData.sql"
@@ -278,18 +270,6 @@ elseif ($sampleDatabase -eq "Autopilot") {
         break
     }
 }
-elseif ($sampleDatabase -eq "Northwind") {
-    # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
-    Write-Output "  Building sample source and target databases."
-    $dbCreateSuccessful = New-SampleDatabases -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -fullRestoreCreateScript:$fullRestoreCreateScript -subsetCreateScript:$subsetCreateScript -SqlCredential:$SqlCredential
-    if ($dbCreateSuccessful){
-        Write-Host "All databases created and validated successfully." -ForegroundColor Green
-    }
-    else {
-        Write-Error "    Error: Failed to create the source and target databases. Please review any errors above."
-        break
-    }
-}
 else {
     # Default to Autopilot databases
     # Using the Build-SampleDatabases function in helper-functions.psm1, and provided sql create scripts, to build sample source and target databases
@@ -321,27 +301,6 @@ Write-Output "There should now be two databases on the $sqlInstance server: $sou
 Write-Output "$sourceDb should contain some data"
 if ($backupPath){
     Write-Output "$targetDb should be identical. In an ideal world, it would be schema identical, but empty of data."
-}
-if ($sampleDatabase -eq "Northwind") {
-    Write-Output "$targetDb should have an identical schema, but no data"
-    Write-Output ""
-    Write-Output "For example, you could run the following script in your prefered IDE:"
-    Write-Output ""
-    Write-Output "  USE $sourceDb"
-    Write-Output "  --USE $targetDb -- Uncomment to run the same query on the target database"
-    Write-Output "  "
-    Write-Output "  SELECT COUNT (*) AS TotalOrders"
-    Write-Output "  FROM   dbo.Orders;"
-    Write-Output "  "
-    Write-Output "  SELECT   TOP 20 o.OrderID AS 'o.OrderId' ,"
-    Write-Output "                  o.CustomerID AS 'o.CustomerID' ,"
-    Write-Output "                  o.ShipAddress AS 'o.ShipAddress' ,"
-    Write-Output "                  o.ShipCity AS 'o.ShipCity' ,"
-    Write-Output "                  c.Address AS 'c.Address' ,"
-    Write-Output "                  c.City AS 'c.ShipCity'"
-    Write-Output "  FROM     dbo.Customers c"
-    Write-Output "           JOIN dbo.Orders o ON o.CustomerID = c.CustomerID"
-    Write-Output "  ORDER BY o.OrderID ASC;"
 }
 else {
     Write-Output "$targetDb should have an identical schema, but no data"
@@ -477,7 +436,7 @@ Write-Output "The data in the $targetDb database should now be masked."
 Write-Output "Review the data in the $sourceDb and $targetDb databases. Are you happy with the way they have been subsetted and masked?"
 Write-Output "Things you may like to look out for:"
 Write-Output "  - Notes fields (e.g. Employees.Notes)"
-Write-Output "  - Dependencies (e.g. If using the sample Northwind database, observer the Orders.ShipAddress and Customers.Address, joined on the CustoemrID column in each table"
+Write-Output "  - Dependencies (e.g. If using the sample database, observe the Orders.ShipAddress and Customers.Address, joined on the CustomerID column in each table"
 Write-Output ""
 Write-Output "Additional tasks:"
 Write-Output "Review both rgsubset-options.json examples in ./Setup_Files, as well as this documentation about using options files:"
