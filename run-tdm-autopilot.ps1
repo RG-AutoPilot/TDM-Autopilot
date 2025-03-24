@@ -167,7 +167,11 @@ if (-not (Get-Module -ListAvailable -Name dbatools)) {
     Write-Host "It is needed to continue running this script."
     Write-Host ""
     Write-Host "Installing dbatools requires administrative privileges." -ForegroundColor Yellow
+    if ($autoContinue){
+        $installNow = "Y"
+    } else {
     $installNow = Read-Host "Would you like to install it now? (Y/N)"
+    }
 
     if ($installNow -match '^(Y|y)$') {
         try {
@@ -390,10 +394,10 @@ Prompt-Continue
 Write-Output ""
 Write-Output "Running rgsubset to copy a subset of the data from $sourceDb to $targetDb."
 if ($backupPath){
-    rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --target-database-write-mode Overwrite
+    rgsubset run --database-engine=sqlserver --source-connection-string="$sourceConnectionString" --target-connection-string="$targetConnectionString" --target-database-write-mode Overwrite
 }
 else {
-    rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --options-file="$subsetterOptionsFile" --target-database-write-mode Overwrite
+    rgsubset run --database-engine="sqlserver" --source-connection-string="$sourceConnectionString" --target-connection-string="$targetConnectionString" --options-file="$subsetterOptionsFile" --target-database-write-mode=Overwrite
 }
 
 
