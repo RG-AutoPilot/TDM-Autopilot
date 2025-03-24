@@ -390,14 +390,34 @@ function Prompt-Continue {
 
 Prompt-Continue
 
-# running subset
+# Running Subset
 Write-Output ""
 Write-Output "Running rgsubset to copy a subset of the data from $sourceDb to $targetDb."
+
 if ($backupPath){
-    rgsubset run --database-engine=sqlserver --source-connection-string="$sourceConnectionString" --target-connection-string="$targetConnectionString" --target-database-write-mode Overwrite
-}
+    # Build the argument list as separate strings. Helps with compatibility with PowerShell Core and 7
+    $arguments = @(
+        'run'
+        '--database-engine=sqlserver'
+        "--source-connection-string=$sourceConnectionString"
+        "--target-connection-string=$targetConnectionString"
+        "--options-file=$subsetterOptionsFile"
+        '--target-database-write-mode=Overwrite'
+    )
+
+    Start-Process -FilePath "rgsubset" -ArgumentList $arguments -NoNewWindow -Wait}
 else {
-    rgsubset run --database-engine="sqlserver" --source-connection-string="$sourceConnectionString" --target-connection-string="$targetConnectionString" --options-file="$subsetterOptionsFile" --target-database-write-mode=Overwrite
+    # Build the argument list as separate strings. Helps with compatibility with PowerShell Core and 7
+    $arguments = @(
+        'run'
+        '--database-engine=sqlserver'
+        "--source-connection-string=$sourceConnectionString"
+        "--target-connection-string=$targetConnectionString"
+        "--options-file=$subsetterOptionsFile"
+        '--target-database-write-mode=Overwrite'
+    )
+
+    Start-Process -FilePath "rgsubset" -ArgumentList $arguments -NoNewWindow -Wait
 }
 
 
@@ -415,7 +435,18 @@ Write-Output ""
 Prompt-Continue
 
 Write-Output "Creating a classification.json file in $output"
-rganonymize classify --database-engine SqlServer --connection-string=$targetConnectionString --classification-file "$output\classification.json" --output-all-columns
+#rganonymize classify --database-engine SqlServer --connection-string=$targetConnectionString --classification-file "$output\classification.json" --output-all-columns
+    # Build the argument list as separate strings. Helps with compatibility with PowerShell Core and 7
+    $arguments = @(
+        'classify'
+        '--database-engine=sqlserver'
+        "--connection-string=$targetConnectionString"
+        "--classification-file=$output\classification.json"
+        '--output-all-columns'
+    )
+
+    Start-Process -FilePath "rganonymize" -ArgumentList $arguments -NoNewWindow -Wait
+
 
 Write-Output ""
 Write-Output "*********************************************************************************************************"
@@ -436,7 +467,17 @@ Write-Output ""
 Prompt-Continue
 
 Write-Output "Creating a masking.json file based on contents of classification.json in $output"
-rganonymize map --classification-file="$output\classification.json" --masking-file="$output\masking.json"
+#rganonymize map --classification-file="$output\classification.json" --masking-file="$output\masking.json"
+
+    # Build the argument list as separate strings. Helps with compatibility with PowerShell Core and 7
+    $arguments = @(
+        'map'
+        "--masking-file=$output\masking.json"
+        "--classification-file=$output\classification.json"
+    )
+
+    Start-Process -FilePath "rganonymize" -ArgumentList $arguments -NoNewWindow -Wait
+
 
 Write-Output ""
 Write-Output "*********************************************************************************************************"
@@ -457,6 +498,16 @@ Prompt-Continue
 
 Write-Output "Masking target database, based on contents of masking.json file in $output"
 rganonymize mask --database-engine SqlServer --connection-string=$targetConnectionString --masking-file="$output\masking.json"
+
+    # Build the argument list as separate strings. Helps with compatibility with PowerShell Core and 7
+    $arguments = @(
+        'mask'
+        '--database-engine=sqlserver'
+        "--connection-string=$targetConnectionString"
+        "--masking-file=$output\masking.json"
+    )
+
+    Start-Process -FilePath "rganonymize" -ArgumentList $arguments -NoNewWindow -Wait
 
 Write-Output ""
 Write-Output "*********************************************************************************************************"
