@@ -399,8 +399,8 @@ if ($backupPath){
     $arguments = @(
         'run'
         '--database-engine=sqlserver'
-        "--source-connection-string=$sourceConnectionString"
-        "--target-connection-string=$targetConnectionString"
+        "--source-connection-string=`"`"$sourceConnectionString`"`""
+        "--target-connection-string=`"`"$targetConnectionString`"`""
         "--options-file=$subsetterOptionsFile"
         '--target-database-write-mode=Overwrite'
     )
@@ -411,8 +411,8 @@ else {
     $arguments = @(
         'run'
         '--database-engine=sqlserver'
-        "--source-connection-string=$sourceConnectionString"
-        "--target-connection-string=$targetConnectionString"
+        "--source-connection-string=`"`"$sourceConnectionString`"`""
+        "--target-connection-string=`"`"$targetConnectionString`"`""
         "--options-file=$subsetterOptionsFile"
         '--target-database-write-mode=Overwrite'
     )
@@ -440,7 +440,7 @@ Write-Output "Creating a classification.json file in $output"
     $arguments = @(
         'classify'
         '--database-engine=sqlserver'
-        "--connection-string=$targetConnectionString"
+        "--connection-string=`"`"$targetConnectionString`"`""
         "--classification-file=$output\classification.json"
         '--output-all-columns'
     )
@@ -503,7 +503,7 @@ rganonymize mask --database-engine SqlServer --connection-string=$targetConnecti
     $arguments = @(
         'mask'
         '--database-engine=sqlserver'
-        "--connection-string=$targetConnectionString"
+        "--connection-string=`"`"$targetConnectionString`"`""
         "--masking-file=$output\masking.json"
     )
 
