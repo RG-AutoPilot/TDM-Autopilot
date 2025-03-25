@@ -111,8 +111,8 @@ jobs:
 
           # Set output values so that I can use them in subsequent steps
           echo "dbUser=$dbUser" >> $env:GITHUB_ENV
-          echo "dbUser=$dbPassword" >> $env:GITHUB_ENV
-          echo "dbUser=$instance" >> $env:GITHUB_ENV
+          echo "dbPassword=$dbPassword" >> $env:GITHUB_ENV
+          echo "instance=$instance" >> $env:GITHUB_ENV
 
       - name: Run Autopilot for TDM in PowerShell 7
         shell: pwsh
