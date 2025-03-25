@@ -84,8 +84,8 @@ if (($sqlUser -like "") -and ($sqlPassword -like "")){
 else {
     $winAuth = $false
     $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, (ConvertTo-SecureString $sqlPassword -AsPlainText -Force)
-    $sourceConnectionString = "server=$sqlInstance;database=$sourceDb;TrustServerCertificate=yes;User Id=$sqlUser;Password=$sqlPassword;"
-    $targetConnectionString = "server=$sqlInstance;database=$targetDb;TrustServerCertificate=yes;User Id=$sqlUser;Password=$sqlPassword;"
+    $sourceConnectionString = "server=$sqlInstance;database=$sourceDb;TrustServerCertificate=yes;UID=$sqlUser;Password=$sqlPassword;"
+    $targetConnectionString = "server=$sqlInstance;database=$targetDb;TrustServerCertificate=yes;UID=$sqlUser;Password=$sqlPassword;"
 }
 
 
