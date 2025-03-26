@@ -11,7 +11,7 @@ param (
                           # "Autopilot_Full" - Full Autopilot with all staging databases
                           # "Backup" - Use a backup file (requires -backupPath). User prompt will be given if backupPath is empty
                           # Leave blank to default to "Autopilot"
-    $logLevel = "Debug", # Logging verbosity level. Options:
+    $logLevel = "Information", # Logging verbosity level. Options:
                                # "Debug" - Most detailed logs, useful for troubleshooting
                                # "Error" - Logs only errors
                                # "Fatal" - Logs only critical failures
