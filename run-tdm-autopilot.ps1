@@ -364,7 +364,6 @@ Write-Output "There should now be two databases on the $sqlInstance server: $sou
 Write-Output "$sourceDb should contain some data"
 if ($backupPath){
     Write-Host "$targetDb should be identical. In an ideal world, it would be schema identical, but empty of data."
-    Write-Host "The default rgsubset options file can be found here - $subsetterOptionsFile - Consider updating this to include custom requirements"
 }
 else {
     Write-Host "$targetDb should have an identical schema, but no data"
@@ -393,7 +392,7 @@ Write-Output ""
 Write-Output "Next:"
 Write-Output "We will run the following rgsubset command to copy a subset of the data from $sourceDb to $targetDb."
 if ($backupPath){
-    Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --options-file `"$subsetterOptionsFile`" --target-database-write-mode Overwrite" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --target-database-write-mode Overwrite" -ForegroundColor Blue  -BackgroundColor Black 
 }
 else {
     Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --options-file `"$subsetterOptionsFile`" --target-database-write-mode Overwrite" -ForegroundColor Blue  -BackgroundColor Black 
@@ -424,7 +423,6 @@ if ($backupPath){
             --database-engine=sqlserver `
             --source-connection-string="$sourceConnectionString" `
             --target-connection-string="$targetConnectionString" `
-            --options-file="$subsetterOptionsFile" `
             --target-database-write-mode=Overwrite `
             --log-level $logLevel | Tee-Object -Variable rgsubsetOutput
 
@@ -444,7 +442,6 @@ if ($backupPath){
             '--database-engine=sqlserver'
             "--source-connection-string=$sourceConnectionString"
             "--target-connection-string=$targetConnectionString"
-            "--options-file=$subsetterOptionsFile"
             '--target-database-write-mode=Overwrite'
             "--log-level=$logLevel"
         )
