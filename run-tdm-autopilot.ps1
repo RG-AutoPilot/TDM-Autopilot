@@ -403,13 +403,14 @@ Write-Output "******************************************************************
 Write-Output ""
 
 # Creating the function for Y/N prompt
-
-do { $continueSubset = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
-$continueSubset = $continueSubset.ToUpper()
-    } until ($continueSubset -match "^(Y|N)$")
-if ($continueSubset -notlike "y") {
-    Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
-    break
+if (-not $autoContinue) {
+    do { $continueSubset = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
+    $continueSubset = $continueSubset.ToUpper()
+        } until ($continueSubset -match "^(Y|N)$")
+    if ($continueSubset -notlike "y") {
+        Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
+        break
+    }
 }
 
 # Running Subset
@@ -514,13 +515,14 @@ Write-Host "********************************************************************
 Write-Host ""
 
 # Creating the function for Y/N prompt
-
-do { $continueClassify = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
-$continueClassify = $continueClassify.ToUpper()
-    } until ($continueClassify -match "^(Y|N)$")
-if ($continueClassify -notlike "y") {
-    Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
-    break
+if (-not $autoContinue) {
+    do { $continueClassify = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
+    $continueClassify = $continueClassify.ToUpper()
+        } until ($continueClassify -match "^(Y|N)$")
+    if ($continueClassify -notlike "y") {
+        Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
+        break
+    }
 }
 
 Write-Output "Creating a classification.json file in $output"
@@ -578,13 +580,14 @@ Write-Host "********************************************************************
 Write-Host ""
 
 # Creating the function for Y/N prompt
-
-do { $continueMap = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
-$continueMap = $continueMap.ToUpper()
-    } until ($continueMap -match "^(Y|N)$")
-if ($continueMap -notlike "y") {
-    Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
-    break
+if (-not $autoContinue) {
+    do { $continueMap = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
+    $continueMap = $continueMap.ToUpper()
+        } until ($continueMap -match "^(Y|N)$")
+    if ($continueMap -notlike "y") {
+        Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
+        break
+    }
 }
 
 Write-Output "Creating a masking.json file based on contents of classification.json in $output"
@@ -637,13 +640,14 @@ Write-Host "********************************************************************
 Write-Host ""
 
 # Creating the function for Y/N prompt
-
-do { $continueMask = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
-$continueMask = $continueMask.ToUpper()
-    } until ($continueMask -match "^(Y|N)$")
-if ($continueMask -notlike "y") {
-    Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
-    break
+if (-not $autoContinue) {
+    do { $continueMask = Get-ValidatedInput -PromptMessage "Would you like to continue? (y/n)" -ErrorMessage "Would you like to continue? (y/n)"
+    $continueMask = $continueMask.ToUpper()
+        } until ($continueMask -match "^(Y|N)$")
+    if ($continueMask -notlike "y") {
+        Write-Host 'Response not like "y". Teminating script.' -ForegroundColor Red
+        break
+    }
 }
 
 Write-Output "Masking target database, based on contents of masking.json file in $output"
