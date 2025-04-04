@@ -108,9 +108,25 @@ if ($sampleDatabase -eq 'Autopilot_Full') {
 ###################################################################################################
 # AUTHENTICATION SETUP (Windows or SQL Auth)
 ###################################################################################################
-Write-Host "The current SQL Server instance is set to: $sqlInstance" -ForegroundColor Yellow
+Write-Host "The current SQL Server instance is set to: $sqlInstance" -ForegroundColor DarkCyan
+
 if (-not $autoContinue) {
-    $newSqlInstance = Read-Host "Enter the SQL Server instance to connect to (press Enter to keep the current value)"
+    $validInputReceived = $false
+
+    do {
+        Write-Host "Enter the SQL Server instance to connect to (press Enter to keep the current value):" -ForegroundColor Yellow
+        $newSqlInstance = Read-Host
+
+        if ($newSqlInstance -match "/") {
+            Write-Host "Invalid character detected: forward slashes are not allowed in SQL Server instance names." -ForegroundColor Red
+            Write-Host "Please use the format 'hostname\instance'." -ForegroundColor Yellow
+        }
+        else {
+            $validInputReceived = $true
+        }
+
+    } until ($validInputReceived)
+
     if (-not [string]::IsNullOrWhiteSpace($newSqlInstance)) {
         $sqlInstance = $newSqlInstance
         Write-Host "SQL Server instance updated to: $sqlInstance" -ForegroundColor Green
@@ -119,57 +135,110 @@ if (-not $autoContinue) {
     }
 }
 
+
 # === Connection String Construction ===
-$winAuth = $true
 $sourceConnectionString = ""
 $targetConnectionString = ""
-if (($sqlUser -like "") -and ($sqlPassword -like "")) {
-    Write-Host "No SQL credentials provided. Assuming Windows Authentication." -ForegroundColor Yellow
+
+# Determine if Windows Auth should be used
+if ([string]::IsNullOrWhiteSpace($sqlUser) -and [string]::IsNullOrWhiteSpace($sqlPassword)) {
+    Write-Host "No SQL credentials provided. Assuming Windows Authentication." -ForegroundColor DarkCyan
+
     if (-not $autoContinue) {
-        $confirmWinAuth = Read-Host "Do you want to proceed with Windows Authentication? (Y/N)"
-        if ($confirmWinAuth -notmatch '^(Y|y)$') {
-            Write-Error "Windows Authentication not confirmed. Exiting script."
-            exit 1
+        Write-Host "Do you want to proceed with Windows Authentication? (Y/N)" -ForegroundColor Yellow
+        $confirmWinAuth = Read-Host
+        $confirmWinAuth = $confirmWinAuth.Trim().ToUpper()
+
+        if ($confirmWinAuth -ne "Y") {
+            Write-Host "Windows Authentication not confirmed. Falling back to SQL Authentication..." -ForegroundColor Yellow
+            $useWindowsAuth = $false
+        } else {
+            Write-Host "Windows Authentication Set to True" -ForegroundColor Green
+            $useWindowsAuth = $true
         }
+    } else {
+        $useWindowsAuth = $true
     }
+} else {
+    $useWindowsAuth = $false
+}
+
+# === Handle authentication ===
+if ($useWindowsAuth) {
+    $winAuth = $true
     $sourceConnectionString = "`"server=$sqlInstance;database=$sourceDb;Trusted_Connection=yes;TrustServerCertificate=yes`""
     $targetConnectionString = "`"server=$sqlInstance;database=$targetDb;Trusted_Connection=yes;TrustServerCertificate=yes`""
 }
 else {
     $winAuth = $false
-    $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, (ConvertTo-SecureString $sqlPassword -AsPlainText -Force)
-    $sourceConnectionString = "server=$sqlInstance;database=$sourceDb;TrustServerCertificate=yes;UID=$sqlUser;Password=$sqlPassword;"
-    $targetConnectionString = "server=$sqlInstance;database=$targetDb;TrustServerCertificate=yes;UID=$sqlUser;Password=$sqlPassword;"
+
+    if (-not $autoContinue -and ([string]::IsNullOrWhiteSpace($sqlUser) -or [string]::IsNullOrWhiteSpace($sqlPassword))) {
+        Write-Host ""
+        Write-Host "   SQL Authentication has been selected, but username and/or password are not provided." -ForegroundColor Yellow
+        Write-Host "   You have two options:" -ForegroundColor Yellow
+        Write-Host "     Edit 'run-tdm-autopilot.ps1' directly and set the -sqlUser and -sqlPassword parameters." -ForegroundColor DarkCyan
+        Write-Host "     Enter the SQL credentials below (they will not be saved):" -ForegroundColor DarkCyan
+
+        Write-Host "Enter SQL username:" -ForegroundColor Yellow
+        $sqlUser = Read-Host
+
+        Write-Host "Enter SQL password (input hidden):" -ForegroundColor Yellow
+        $securePassword = Read-Host -AsSecureString
+        $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, $securePassword
+        $plainPassword = [System.Net.NetworkCredential]::new("", $securePassword).Password
+    }
+    else {
+        $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, (ConvertTo-SecureString $sqlPassword -AsPlainText -Force)
+        $plainPassword = $sqlPassword
+    }
+
+    $sourceConnectionString = "server=$sqlInstance;database=$sourceDb;TrustServerCertificate=yes;UID=$sqlUser;Password=$plainPassword;"
+    $targetConnectionString = "server=$sqlInstance;database=$targetDb;TrustServerCertificate=yes;UID=$sqlUser;Password=$plainPassword;"
 }
+
+
+
+Write-Host "Trust Server Certificate is currently set to: $trustCert" -ForegroundColor DarkCyan
+
+if (-not $autoContinue) {
+    do {
+        Write-Host "Do you want to trust the SQL Server's certificate? (Y/N)" -ForegroundColor Yellow
+        $trustCertResponse = Read-Host
+        $trustCertResponse = $trustCertResponse.Trim().ToUpper()
+    } until ($trustCertResponse -match '^(Y|N)$')
+
+    $trustCert = $trustCertResponse -eq "Y"
+}
+
 
 ###################################################################################################
 # CONFIGURATION SUMMARY
 ###################################################################################################
-Write-Output "Configuration:"
-Write-Output "- sqlInstance:             $sqlInstance"
-Write-Output "- databaseName:            $databaseName"
-Write-Output "- sourceDb:                $sourceDb"
-Write-Output "- targetDb:                $targetDb"  
+Write-Host "Configuration:" -ForegroundColor DarkCyan
+Write-Host "- sqlInstance:             $sqlInstance" -ForegroundColor DarkCyan
+Write-Host "- databaseName:            $databaseName" -ForegroundColor DarkCyan
+Write-Host "- sourceDb:                $sourceDb" -ForegroundColor DarkCyan
+Write-Host "- targetDb:                $targetDb" -ForegroundColor DarkCyan
 if (-not [string]::IsNullOrWhiteSpace($backupPath)) {
-    Write-Output "- backupPath:              $backupPath"
+    Write-Host "- backupPath:              $backupPath" -ForegroundColor DarkCyan
 }
 elseif ($sampleDatabase -eq 'Autopilot_Full' -or $sampleDatabase -eq 'Autopilot') {
-    Write-Output "- schemaScript:            $schemaCreateScript"
-    Write-Output "- InsertScript:            $productionDataInsertScript"
+    Write-Host "- schemaScript:            $schemaCreateScript" -ForegroundColor DarkCyan
+    Write-Host "- InsertScript:            $productionDataInsertScript" -ForegroundColor DarkCyan
 }
 else {
-    Write-Output "- fullRestoreCreateScript: $fullRestoreCreateScript"
-    Write-Output "- subsetCreateScript:      $subsetCreateScript"
+    Write-Host "- fullRestoreCreateScript: $fullRestoreCreateScript" -ForegroundColor DarkCyan
+    Write-Host "- subsetCreateScript:      $subsetCreateScript" -ForegroundColor DarkCyan
 }
-Write-Output "- subsetterOptionsFile:    $subsetterOptionsFile"
-Write-Output "- Using Windows Auth:      $winAuth"
-Write-Output "- sourceConnectionString:  $sourceConnectionString"
-Write-Output "- targetConnectionString:  $targetConnectionString"
-Write-Output "- output:                  $output"
-Write-Output "- trustCert:               $trustCert"
-Write-Output "- sampleDatabase:          $sampleDatabase"
-Write-Output "- noRestore:               $noRestore"
-Write-Output ""
+Write-Host "- subsetterOptionsFile:    $subsetterOptionsFile" -ForegroundColor DarkCyan
+Write-Host "- Using Windows Auth:      $winAuth" -ForegroundColor DarkCyan
+Write-Host "- sourceConnectionString:  $sourceConnectionString" -ForegroundColor DarkCyan
+Write-Host "- targetConnectionString:  $targetConnectionString" -ForegroundColor DarkCyan
+Write-Host "- output:                  $output" -ForegroundColor DarkCyan
+Write-Host "- trustCert:               $trustCert" -ForegroundColor DarkCyan
+Write-Host "- sampleDatabase:          $sampleDatabase" -ForegroundColor DarkCyan
+Write-Host "- noRestore:               $noRestore" -ForegroundColor DarkCyan
+Write-Host "" 
 
 ###################################################################################################
 # CONTINUES WITH: PowerShell Edition Detection, EULA Agreement, dbatools Install, CLI Auth...
@@ -181,7 +250,7 @@ Write-Output ""
 
 # Detect whether running in Windows PowerShell (5.1) or PowerShell 7+ (pwsh)
 $isPwsh = $PSVersionTable.PSEdition -eq "Core"
-Write-Output "Detected PowerShell Edition: $($PSVersionTable.PSEdition)"
+Write-Host "Detected PowerShell Edition: $($PSVersionTable.PSEdition)" -ForegroundColor DarkCyan
 
 # Unblock all files (especially required if downloaded as a zip)
 Get-ChildItem -Path $PSScriptRoot -Recurse | Unblock-File
@@ -219,7 +288,10 @@ if (-not (Get-Module -ListAvailable -Name dbatools)) {
     if ($autoContinue){
         $installNow = "Y"
     } else {
-        $installNow = Read-Host "Would you like to install it now? (Y/N)"
+        do {
+            $installNow = Get-ValidatedInput -PromptMessage "Would you like to install it now? (Y/N)" -ErrorMessage "Input cannot be left blank, please try again. Would you like to install it now? (Y/N)"
+            $installNow = $installNow.ToUpper()
+            } until ($installNow -match "^(Y|N)$")
     }
 
     if ($installNow -match '^(Y|y)$') {
@@ -235,16 +307,29 @@ if (-not (Get-Module -ListAvailable -Name dbatools)) {
     else {
         Write-Warning "Skipping installation of dbatools. Please ensure it is installed before continuing."
         Write-Host "You can install it manually by running:"
-        Write-Host "Install-Module dbatools -Scope CurrentUser -AllowClobber" -ForegroundColor Cyan
-        $continueAnyway = Read-Host "Do you want to continue anyway? (Y/N)"
+        Write-Host "Install-Module dbatools -Scope CurrentUser -AllowClobber" -ForegroundColor DarkCyan
+        do {
+            $continueAnyway = Get-ValidatedInput -PromptMessage "Would you like to continue anyway? (Y/N)" -ErrorMessage "Input cannot be left blank, please try again. Would you like to continue anyway? (Y/N)"
+            $continueAnyway = $continueAnyway.ToUpper()
+            } until ($continueAnyway -match "^(Y|N)$")
+
         if ($continueAnyway -notmatch '^(Y|y)$') {
-            Write-Host "Exiting setup. Please install dbatools and re-run the script."
+            Write-Host "Exiting setup. Please install dbatools and re-run the script." -ForegroundColor Yellow
             exit 1
         }
     }
 }
 else {
     Write-Host "dbatools module is already installed." -ForegroundColor Green
+}
+
+if ($trustCert -ne $true){
+    # Updating the dbatools configuration for this session only to trust server certificates and not encrypt connections
+    #   Note: This is not best practice. For more information about a more secure way to manage encyption/certificates, see this post by Chrissy LeMaire:
+    #   https://blog.netnerds.net/2023/03/new-defaults-for-sql-server-connections-encryption-trust-certificate/
+    Write-Host "    Updating dbatools configuration (for this session only) to trust server certificates, and not to encrypt connections." -ForegroundColor DarkCyan
+    Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $true
+    Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $false
 }
 
 ###################################################################################################
@@ -298,24 +383,39 @@ if (-not $skipAuth){
 }
 
 # Log current CLI versions
-Write-Output ""
-Write-Output "rgsubset version is:"
-rgsubset --version
-Write-Output "rganonymize version is:"
-rganonymize --version
-Write-Output ""
+$rgsubsetVersion = rgsubset --version
+$rganonymizeVersion = rganonymize --version
+
+Write-Host ""
+Write-Host "rgsubset version is: $rgsubsetVersion" -ForegroundColor DarkCyan
+Write-Host "rganonymize version is: $rganonymizeVersion" -ForegroundColor DarkCyan
+Write-Host ""
 
 ###################################################################################################
 # DATABASE PROVISIONING (Restore/Create/Skip)
 ###################################################################################################
 
-if ($noRestore){
+if ($noRestore) {
     Write-Output "*********************************************************************************************************"
     Write-Output "Skipping database restore and creation."
     Write-Output "Ensure $sourceDb and $targetDb already exist on server: $sqlInstance"
     Write-Output "*********************************************************************************************************"
 }
 elseif ($backupPath) {
+    Write-Host ""
+    Write-Host "You are about to restore $sourceDb and $targetDb from a backup file located at:" -ForegroundColor Yellow
+    Write-Host "  $backupPath" -ForegroundColor DarkCyan
+    if (-not $autoContinue) {
+        do {
+            $confirmRestore = Get-ValidatedInput -PromptMessage "Do you want to proceed? (y/n)" -ErrorMessage "Please enter Y or N"
+            $confirmRestore = $confirmRestore.ToUpper()
+        } until ($confirmRestore -match "^(Y|N)$")
+        if ($confirmRestore -ne "Y") {
+            Write-Host "User opted out of database restore from backup. Exiting..." -ForegroundColor Red
+            break
+        }
+    }
+
     Write-Output "  Building $sourceDb and $targetDb from backup file at $BackupPath."
     $dbCreateSuccessful = Restore-StagingDatabasesFromBackup -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -sourceBackupPath:$backupPath -SqlCredential:$SqlCredential
     if ($dbCreateSuccessful){
@@ -326,6 +426,20 @@ elseif ($backupPath) {
     }
 }
 elseif ($sampleDatabase -eq "Autopilot_Full") {
+    Write-Host ""
+    Write-Host "You are about to create ALL Autopilot databases using predefined schema and data scripts." -ForegroundColor Yellow
+    Write-Host "This will create or update the Autopilot suite of databases in the target instance" -ForegroundColor DarkCyan
+    if (-not $autoContinue) {
+        do {
+            $confirmFullCreate = Get-ValidatedInput -PromptMessage "Do you want to proceed with database creation? (y/n)" -ErrorMessage "Please enter Y or N"
+            $confirmFullCreate = $confirmFullCreate.ToUpper()
+        } until ($confirmFullCreate -match "^(Y|N)$")
+        if ($confirmFullCreate -ne "Y") {
+            Write-Host "User opted out of full Autopilot database creation. Exiting..." -ForegroundColor Red
+            break
+        }
+    }
+
     Write-Output "  Starting full database creation process..."
     New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential | Tee-Object -Variable dbCreateSuccessful
     if ($dbCreateSuccessful){
@@ -336,6 +450,20 @@ elseif ($sampleDatabase -eq "Autopilot_Full") {
     }
 }
 elseif ($sampleDatabase -eq "Autopilot") {
+    Write-Host ""
+    Write-Host "You are about to create standard Autopilot databases from schema and data scripts." -ForegroundColor Yellow
+    Write-Host "This will create or update the databases: $sourceDb and $targetDb" -ForegroundColor DarkCyan
+    if (-not $autoContinue) {
+        do {
+            $confirmStandardCreate = Get-ValidatedInput -PromptMessage "Do you want to proceed with the database creation? (y/n)" -ErrorMessage "Please enter Y or N"
+            $confirmStandardCreate = $confirmStandardCreate.ToUpper()
+        } until ($confirmStandardCreate -match "^(Y|N)$")
+        if ($confirmStandardCreate -ne "Y") {
+            Write-Host "User opted out of standard Autopilot database creation. Exiting..." -ForegroundColor Red
+            break
+        }
+    }
+
     Write-Output "  Starting sample database creation process..."
     New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential | Tee-Object -Variable dbCreateSuccessful
     if ($dbCreateSuccessful){
@@ -347,6 +475,20 @@ elseif ($sampleDatabase -eq "Autopilot") {
 }
 else {
     # Fallback to default setup
+    Write-Host ""
+    Write-Host "You are about to create the Autopilot databases." -ForegroundColor Yellow
+    Write-Host "This will create or update the databases: $sourceDb and $targetDb" -ForegroundColor DarkCyan
+    if (-not $autoContinue) {
+        do {
+            $confirmFallbackCreate = Get-ValidatedInput -PromptMessage "Do you want to proceed with the database creation? (y/n)" -ErrorMessage "Please enter Y or N"
+            $confirmFallbackCreate = $confirmFallbackCreate.ToUpper()
+        } until ($confirmFallbackCreate -match "^(Y|N)$")
+        if ($confirmFallbackCreate -ne "Y") {
+            Write-Host "User opted out of default database creation. Exiting..." -ForegroundColor Red
+            break
+        }
+    }
+
     Write-Output "  Starting default database creation process..."
     New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential | Tee-Object -Variable dbCreateSuccessful
     if ($dbCreateSuccessful){
@@ -362,7 +504,7 @@ else {
 ###################################################################################################
 
 if (Test-Path $output) {
-    Write-Output "    Attempting to delete existing output directory..."
+    Write-Host "    Attempting to delete existing output directory..." -ForegroundColor DarkCyan
     try {
         Remove-Item -Recurse -Force $output -ErrorAction Stop | Out-Null
         Write-Host "Successfully cleaned the output directory." -ForegroundColor Green
@@ -388,38 +530,38 @@ if (-not (Test-Path $output)) {
 # OBSERVATION / VALIDATION POINT – BEFORE SUBSETTING
 ###################################################################################################
 
-Write-Output ""
-Write-Output "*********************************************************************************************************"
-Write-Output "Observe:"
-Write-Output "There should now be two databases on the $sqlInstance server: $sourceDb and $targetDb"
-Write-Output "$sourceDb should contain some data"
+Write-Host ""
+Write-Host "*********************************************************************************************************"
+Write-Host "Observe:"
+Write-Host "There should now be two databases on the $sqlInstance server: $sourceDb and $targetDb" -ForegroundColor DarkCyan
+Write-Host "$sourceDb should contain some data" -ForegroundColor DarkCyan
 if ($backupPath){
-    Write-Host "$targetDb should be identical. In an ideal world, it would be schema identical, but empty of data."
+    Write-Host "$targetDb should be identical. In an ideal world, it would be schema identical, but empty of data." -ForegroundColor DarkCyan
 }
 else {
     Write-Host "$targetDb should have an identical schema, but no data"
     Write-Host ""
     Write-Host "You can run this example query to verify:"
-    Write-Host "  USE $sourceDb"
-    Write-Host "  --USE $targetDb -- Uncomment to run on target"
-    Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;"
-    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress, o.ShipCity, c.Address, c.City, c.ContactName"
-    Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID"
-    Write-Host "  ORDER BY o.OrderID ASC;"
+    Write-Host "  USE $sourceDb" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  --USE $targetDb -- Uncomment to run on target" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress, o.ShipCity, c.Address, c.City, c.ContactName" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue  -BackgroundColor Black 
 }
 
 ###################################################################################################
 # SUBSETTING: Run rgsubset to copy a subset of data from source → target
 ###################################################################################################
 
-Write-Output ""
-Write-Output "Next:"
-Write-Output "We will run rgsubset to copy a subset of the data from $sourceDb to $targetDb."
+Write-Host ""
+Write-Host "Next:"
+Write-Host "We will run rgsubset to copy a subset of the data from $sourceDb to $targetDb." -ForegroundColor DarkCyan
 if ($backupPath){
-    Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --target-database-write-mode Overwrite"
+    Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --target-database-write-mode Overwrite" -ForegroundColor Blue  -BackgroundColor Black 
 }
 else {
-    Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --options-file `"$subsetterOptionsFile`" --target-database-write-mode Overwrite"
+    Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --options-file `"$subsetterOptionsFile`" --target-database-write-mode Overwrite" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "This will include only relevant tables as defined in: $subsetterOptionsFile"
 }
 Write-Output "*********************************************************************************************************"
@@ -493,14 +635,14 @@ Write-Host "rgsubset completed successfully" -ForegroundColor Green
 # CLASSIFY: Create classification.json with PII locations
 ###################################################################################################
 
-Write-Output ""
-Write-Output "*********************************************************************************************************"
-Write-Output "Observe:"
-Write-Output "Classification JSON will be created at $output to document discovered PII in $targetDb"
-Write-Output "Next step will use:"
-Write-Host "  rganonymize classify --database-engine SqlServer --connection-string $targetConnectionString --classification-file `"$output\classification.json`" --output-all-columns"
-Write-Output "*********************************************************************************************************"
-Write-Output ""
+Write-Host ""
+Write-Host "*********************************************************************************************************"
+Write-Host "Observe:"
+Write-Host "Classification JSON will be created at $output to document discovered PII in $targetDb"
+Write-Host "Next step will use:"
+Write-Host "  rganonymize classify --database-engine SqlServer --connection-string $targetConnectionString --classification-file `"$output\classification.json`" --output-all-columns" -ForegroundColor Blue  -BackgroundColor Black 
+Write-Host "*********************************************************************************************************"
+Write-Host ""
 
 if (-not $autoContinue) {
     do {
@@ -513,7 +655,7 @@ if (-not $autoContinue) {
     }
 }
 
-Write-Output "Creating classification.json in $output"
+Write-Host "Creating classification.json in $output" -ForegroundColor DarkCyan
 
 if (-not $isPwsh) {
     & rganonymize classify `
@@ -544,13 +686,13 @@ Write-Host "rganonymize (Classify) completed successfully" -ForegroundColor Gree
 # MAP: Create masking.json based on the classification file
 ###################################################################################################
 
-Write-Output ""
-Write-Output "*********************************************************************************************************"
-Write-Output "Observe:"
-Write-Output "Next step will generate a masking.json based on classification.json"
-Write-Host "  rganonymize map --classification-file `"$output\classification.json`" --masking-file `"$output\masking.json`""
-Write-Output "*********************************************************************************************************"
-Write-Output ""
+Write-Host ""
+Write-Host "*********************************************************************************************************"
+Write-Host "Observe:"
+Write-Host "Next step will generate a masking.json based on classification.json"
+Write-Host "  rganonymize map --classification-file `"$output\classification.json`" --masking-file `"$output\masking.json`"" -ForegroundColor Blue  -BackgroundColor Black 
+Write-Host "*********************************************************************************************************"
+Write-Host ""
 
 if (-not $autoContinue) {
     do {
@@ -590,13 +732,13 @@ Write-Host "rganonymize (Mapping) completed successfully" -ForegroundColor Green
 # MASK: Apply the masking.json to the target database
 ###################################################################################################
 
-Write-Output ""
-Write-Output "*********************************************************************************************************"
-Write-Output "Observe:"
-Write-Output "The data in $targetDb will now be masked based on masking.json"
-Write-Host "  rganonymize mask --database-engine SqlServer --connection-string $targetConnectionString --masking-file `"$output\masking.json`""
-Write-Output "*********************************************************************************************************"
-Write-Output ""
+Write-Host ""
+Write-Host "*********************************************************************************************************"
+Write-Host "Observe:"
+Write-Host "The data in $targetDb will now be masked based on masking.json"
+Write-Host "  rganonymize mask --database-engine SqlServer --connection-string $targetConnectionString --masking-file `"$output\masking.json`"" -ForegroundColor Blue  -BackgroundColor Black 
+Write-Host "*********************************************************************************************************"
+Write-Host ""
 
 if (-not $autoContinue) {
     do {
@@ -609,7 +751,7 @@ if (-not $autoContinue) {
     }
 }
 
-Write-Output "Applying masking to $targetDb using masking.json"
+Write-Host "Applying masking to $targetDb using masking.json" -ForegroundColor DarkCyan
 
 if (-not $isPwsh) {
     & rganonymize mask `
