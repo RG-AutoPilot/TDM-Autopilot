@@ -7,6 +7,7 @@ param (
     $sqlPassword = "", # SQL Server password (required if using SQL Authentication)
     $output = "C:\temp\tdm-autopilot", # Directory to output logs and generated files
     $trustCert = $true, # Trust self-signed SQL Server certificates
+    $encryptConnection = $true, # Encrypt connection to target SQL Server
     $backupPath = "", # Optional path to a .bak file for restore
     $databaseName = "Autopilot", # Name of the target database
     $sampleDatabase = "", # Type of database setup: "Autopilot", "Autopilot_Full", or "Backup"
@@ -208,8 +209,26 @@ if (-not $autoContinue) {
     } until ($trustCertResponse -match '^(Y|N)$')
 
     $trustCert = $trustCertResponse -eq "Y"
+    Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
 }
 
+Write-Host "Encrypt Connection is currently set to: $encryptConnection" -ForegroundColor DarkCyan
+
+if (-not $autoContinue) {
+    do {
+        Write-Host "Do you want to Encrypt Connection? (Y/N)" -ForegroundColor Yellow
+        $encryptConnectionResponse = Read-Host
+        $encryptConnectionResponse = $encryptConnectionResponse.Trim().ToUpper()
+    } until ($encryptConnectionResponse -match '^(Y|N)$')
+
+    $encryptConnection = $encryptConnectionResponse -eq "Y"
+    Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
+}
+
+if ($autoContinue) {
+    Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
+    Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
+}
 
 ###################################################################################################
 # CONFIGURATION SUMMARY
@@ -236,6 +255,7 @@ Write-Host "- sourceConnectionString:  $sourceConnectionString" -ForegroundColor
 Write-Host "- targetConnectionString:  $targetConnectionString" -ForegroundColor DarkCyan
 Write-Host "- output:                  $output" -ForegroundColor DarkCyan
 Write-Host "- trustCert:               $trustCert" -ForegroundColor DarkCyan
+Write-Host "- encryptConnection:       $encryptConnection" -ForegroundColor DarkCyan
 Write-Host "- sampleDatabase:          $sampleDatabase" -ForegroundColor DarkCyan
 Write-Host "- noRestore:               $noRestore" -ForegroundColor DarkCyan
 Write-Host "" 
