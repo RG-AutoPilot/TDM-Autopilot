@@ -1,5 +1,12 @@
+# Message Type	            Color	     Usage Example
+# ❌ Error / Failure	       Red	        Write-Host "Error: XYZ"
+# ✅ Success / Setup OK	   Green	    Write-Host "Connected to DB"
+# ❓ Prompt / User Input	   Yellow	    Write-Host "Enter DB name:"
+# 📘 Commands / Scripts	    Blue	     Write-Host "Run: ..."
+# 🧾 Info / Status Value	DarkCyan     Write-Host "Using: sqlInstance = X"
+
 ###################################################################################################
-# PARAMETERS
+# PARAMETERS - Update below to improve default script logic
 ###################################################################################################
 param (
     $sqlInstance = "localhost", # SQL Server instance to connect to (e.g., "MyServer\SQLInstance")
@@ -331,10 +338,6 @@ elseif ($sampleDatabase -eq 'Autopilot_Full' -or $sampleDatabase -eq 'Autopilot'
     Write-Host "- schemaScript:            $schemaCreateScript" -ForegroundColor DarkCyan
     Write-Host "- InsertScript:            $productionDataInsertScript" -ForegroundColor DarkCyan
 }
-else {
-    Write-Host "- fullRestoreCreateScript: $fullRestoreCreateScript" -ForegroundColor DarkCyan
-    Write-Host "- subsetCreateScript:      $subsetCreateScript" -ForegroundColor DarkCyan
-}
 Write-Host "- subsetterOptionsFile:    $subsetterOptionsFile" -ForegroundColor DarkCyan
 Write-Host "- Using Windows Auth:      $winAuth" -ForegroundColor DarkCyan
 Write-Host "- sourceConnectionString:  $sourceConnectionString" -ForegroundColor DarkCyan
@@ -360,10 +363,10 @@ if (-not $autoContinue) {
 }
 
 if ($tdmInstallResponse -like "y") {
-    Write-Output "  Ensuring Redgate CLIs rgsubset and rganonymize are installed and up to date"
+    Write-Host "  Ensuring Redgate CLIs rgsubset and rganonymize are installed and up to date" -ForegroundColor DarkCyan
     powershell -File $installTdmClisScript 
 } else {
-    Write-output 'Skipping TDM Data Treatments Install Step'
+    Write-Host 'Skipping TDM Data Treatments Install Step' -ForegroundColor DarkCyan
 }
 
 # Refresh environment variables to include CLI path
@@ -389,10 +392,10 @@ if (-not ($rganonymizeExe -and $rgsubsetExe)){
 
 if (-not $skipAuth){
     Write-Output "  Authorizing rgsubset, and starting a trial (if not already started):"
-    Write-Output "    rgsubset auth login --i-agree-to-the-eula --start-trial"
+    Write-Host "    rgsubset auth login --i-agree-to-the-eula --start-trial" -ForegroundColor Blue
     rgsubset auth login --i-agree-to-the-eula --start-trial
     Write-Output "  Authorizing rganonymize:"
-    Write-Output "    rganonymize auth login --i-agree-to-the-eula"
+    Write-Host "    rganonymize auth login --i-agree-to-the-eula" -ForegroundColor Blue
     rganonymize auth login --i-agree-to-the-eula
 }
 
@@ -529,7 +532,7 @@ if (Test-Path $output) {
 }
 
 if (-not (Test-Path $output)) {
-    Write-Output "    Creating output directory."
+    Write-Host "    Creating output directory." -ForegroundColor Blue
     New-Item -ItemType Directory -Path $output | Out-Null
 } else {
     Write-Output "    Output directory already exists. Skipping creation."
@@ -555,7 +558,7 @@ if ($backupPath){
 else {
     Write-Host "$targetDb should have an identical schema, but no data"
     Write-Host ""
-    Write-Host "You can run this example query to verify:"
+    Write-Host "Copy and run the below SQL in blue to validate the '$sourcedb' and '$targetDb' databases:"
     Write-Host "  USE $sourceDb" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  --USE $targetDb -- Uncomment to run on target" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue  -BackgroundColor Black 
@@ -569,8 +572,9 @@ else {
 ###################################################################################################
 
 Write-Host ""
-Write-Host "Next:"
+Write-Host "Next:" -ForegroundColor DarkCyan
 Write-Host "We will run rgsubset to copy a subset of the data from $sourceDb to $targetDb." -ForegroundColor DarkCyan
+Write-Host "The rgsubset CLI command can be found below in blue for reference:" -ForegroundColor DarkCyan
 if ($backupPath){
     Write-Host "  rgsubset run --database-engine=sqlserver --source-connection-string=$sourceConnectionString --target-connection-string=$targetConnectionString --target-database-write-mode Overwrite" -ForegroundColor Blue  -BackgroundColor Black 
 }
@@ -651,9 +655,10 @@ Write-Host "rgsubset completed successfully" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "*********************************************************************************************************"
-Write-Host "Observe:"
-Write-Host "Classification JSON will be created at $output to document discovered PII in $targetDb"
-Write-Host "Next step will use:"
+Write-Host "Observe:" -ForegroundColor DarkCyan
+Write-Host "Classification JSON will be created at $output to document discovered PII in $targetDb" -ForegroundColor DarkCyan
+Write-Host "The next step uses the Classify feature of the rganonymize CLI. This detects sensitive columns in the target database." -ForegroundColor DarkCyan
+Write-Host "See below for the reference CLI command:" -ForegroundColor DarkCyan
 Write-Host "  rganonymize classify --database-engine SqlServer --connection-string $targetConnectionString --classification-file `"$output\classification.json`" --output-all-columns" -ForegroundColor Blue  -BackgroundColor Black 
 Write-Host "*********************************************************************************************************"
 Write-Host ""
@@ -702,8 +707,10 @@ Write-Host "rganonymize (Classify) completed successfully" -ForegroundColor Gree
 
 Write-Host ""
 Write-Host "*********************************************************************************************************"
-Write-Host "Observe:"
-Write-Host "Next step will generate a masking.json based on classification.json"
+Write-Host "Observe:" -ForegroundColor DarkCyan
+Write-Host "Next step will generate a masking.json based on classification.json" -ForegroundColor DarkCyan
+Write-Host "The next step uses the 'map' feature of the rganonymize CLI. This maps sensitively classified columns to a corresponding dataset." -ForegroundColor DarkCyan
+Write-Host "See below for the reference CLI command in blue:" -ForegroundColor DarkCyan
 Write-Host "  rganonymize map --classification-file `"$output\classification.json`" --masking-file `"$output\masking.json`"" -ForegroundColor Blue  -BackgroundColor Black 
 Write-Host "*********************************************************************************************************"
 Write-Host ""
@@ -748,8 +755,10 @@ Write-Host "rganonymize (Mapping) completed successfully" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "*********************************************************************************************************"
-Write-Host "Observe:"
-Write-Host "The data in $targetDb will now be masked based on masking.json"
+Write-Host "Observe:" -ForegroundColor DarkCyan
+Write-Host "The data in $targetDb will now be masked based on masking.json" -ForegroundColor DarkCyan
+Write-Host "The final step uses the 'mask' feature of the rganonymize CLI. This step puts the plan into action and masks the target databases date." -ForegroundColor DarkCyan
+Write-Host "See below for the reference CLI command:" -ForegroundColor DarkCyan
 Write-Host "  rganonymize mask --database-engine SqlServer --connection-string $targetConnectionString --masking-file `"$output\masking.json`"" -ForegroundColor Blue  -BackgroundColor Black 
 Write-Host "*********************************************************************************************************"
 Write-Host ""
@@ -811,3 +820,15 @@ Write-Host ""
 Write-Host "**************************************   FINISHED!   **************************************"
 Write-Host "CONGRATULATIONS! You've completed a minimal viable Test Data Manager proof of concept."
 Write-Host ""
+
+if (-not $autoContinue) {
+    try {
+        Write-Host ""
+        Write-Host "Press any key to exit..." -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    catch {
+        Write-Host "Press Enter to exit..." -ForegroundColor Yellow
+        Read-Host
+    }
+}
