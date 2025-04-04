@@ -106,6 +106,90 @@ if ($sampleDatabase -eq 'Autopilot_Full') {
     $subsetterOptionsFile = "$PSScriptRoot\Setup_Files\Data_Treatments_Options_Files\rgsubset-options-autopilot.json"
 }
 
+
+###################################################################################################
+# CONTINUES WITH: PowerShell Edition Detection, EULA Agreement, dbatools Install, CLI Auth...
+###################################################################################################
+
+###################################################################################################
+# ENVIRONMENT SETUP AND SAFETY CHECKS
+###################################################################################################
+
+# Detect whether running in Windows PowerShell (5.1) or PowerShell 7+ (pwsh)
+$isPwsh = $PSVersionTable.PSEdition -eq "Core"
+Write-Host "Detected PowerShell Edition: $($PSVersionTable.PSEdition)" -ForegroundColor DarkCyan
+
+# Unblock all files (especially required if downloaded as a zip)
+Get-ChildItem -Path $PSScriptRoot -Recurse | Unblock-File
+
+###################################################################################################
+# REDGATE EULA AGREEMENT
+###################################################################################################
+
+if (-not $iAgreeToTheRedgateEula){
+    if ($autoContinue){
+        Write-Error 'If using the -autoContinue parameter, the -iAgreeToTheRedgateEula parameter is also required.'
+        break
+    }
+    else {
+        do {
+            $eulaResponse = Get-ValidatedInput -PromptMessage "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)" -ErrorMessage "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)"
+            $eulaResponse = $eulaResponse.ToUpper()
+        } until ($eulaResponse -match "^(Y|N)$")
+        if ($eulaResponse -notlike "y") {
+            Write-output 'Response not like "y". Terminating script.'
+            break
+        }
+    }
+}
+
+###################################################################################################
+# CHECK AND INSTALL dbatools MODULE IF NEEDED
+###################################################################################################
+
+if (-not (Get-Module -ListAvailable -Name dbatools)) {
+    Write-Host ""
+    Write-Warning "The required module 'dbatools' is not currently installed."
+    Write-Host "It is needed to continue running this script."
+
+    if ($autoContinue){
+        $installNow = "Y"
+    } else {
+        do {
+            $installNow = Get-ValidatedInput -PromptMessage "Would you like to install it now? (Y/N)" -ErrorMessage "Input cannot be left blank, please try again. Would you like to install it now? (Y/N)"
+            $installNow = $installNow.ToUpper()
+            } until ($installNow -match "^(Y|N)$")
+    }
+
+    if ($installNow -match '^(Y|y)$') {
+        try {
+            Install-Dbatools -autoContinue:$autoContinue -trustCert:$trustCert
+            Write-Host "dbatools has been installed successfully." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to install dbatools. Please install it manually or run this script as Administrator."
+            exit 1
+        }
+    }
+    else {
+        Write-Warning "Skipping installation of dbatools. Please ensure it is installed before continuing."
+        Write-Host "You can install it manually by running:"
+        Write-Host "Install-Module dbatools -Scope CurrentUser -AllowClobber" -ForegroundColor DarkCyan
+        do {
+            $continueAnyway = Get-ValidatedInput -PromptMessage "Would you like to continue anyway? (Y/N)" -ErrorMessage "Input cannot be left blank, please try again. Would you like to continue anyway? (Y/N)"
+            $continueAnyway = $continueAnyway.ToUpper()
+            } until ($continueAnyway -match "^(Y|N)$")
+
+        if ($continueAnyway -notmatch '^(Y|y)$') {
+            Write-Host "Exiting setup. Please install dbatools and re-run the script." -ForegroundColor Yellow
+            exit 1
+        }
+    }
+}
+else {
+    Write-Host "dbatools module is already installed." -ForegroundColor Green
+}
+
 ###################################################################################################
 # AUTHENTICATION SETUP (Windows or SQL Auth)
 ###################################################################################################
@@ -209,6 +293,7 @@ if (-not $autoContinue) {
     } until ($trustCertResponse -match '^(Y|N)$')
 
     $trustCert = $trustCertResponse -eq "Y"
+    Write-Host "Trust Server Certificate Set to $trustCert" -ForegroundColor Green
     Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
 }
 
@@ -222,11 +307,7 @@ if (-not $autoContinue) {
     } until ($encryptConnectionResponse -match '^(Y|N)$')
 
     $encryptConnection = $encryptConnectionResponse -eq "Y"
-    Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
-}
-
-if ($autoContinue) {
-    Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
+    Write-Host "Encrypt Connection Set to $encryptConnection" -ForegroundColor Green
     Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
 }
 
@@ -259,98 +340,6 @@ Write-Host "- encryptConnection:       $encryptConnection" -ForegroundColor Dark
 Write-Host "- sampleDatabase:          $sampleDatabase" -ForegroundColor DarkCyan
 Write-Host "- noRestore:               $noRestore" -ForegroundColor DarkCyan
 Write-Host "" 
-
-###################################################################################################
-# CONTINUES WITH: PowerShell Edition Detection, EULA Agreement, dbatools Install, CLI Auth...
-###################################################################################################
-
-###################################################################################################
-# ENVIRONMENT SETUP AND SAFETY CHECKS
-###################################################################################################
-
-# Detect whether running in Windows PowerShell (5.1) or PowerShell 7+ (pwsh)
-$isPwsh = $PSVersionTable.PSEdition -eq "Core"
-Write-Host "Detected PowerShell Edition: $($PSVersionTable.PSEdition)" -ForegroundColor DarkCyan
-
-# Unblock all files (especially required if downloaded as a zip)
-Get-ChildItem -Path $PSScriptRoot -Recurse | Unblock-File
-
-###################################################################################################
-# REDGATE EULA AGREEMENT
-###################################################################################################
-
-if (-not $iAgreeToTheRedgateEula){
-    if ($autoContinue){
-        Write-Error 'If using the -autoContinue parameter, the -iAgreeToTheRedgateEula parameter is also required.'
-        break
-    }
-    else {
-        do {
-            $eulaResponse = Get-ValidatedInput -PromptMessage "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)" -ErrorMessage "Do you agree to the Redgate End User License Agreement (EULA)? (y/n)"
-            $eulaResponse = $eulaResponse.ToUpper()
-        } until ($eulaResponse -match "^(Y|N)$")
-        if ($eulaResponse -notlike "y") {
-            Write-output 'Response not like "y". Terminating script.'
-            break
-        }
-    }
-}
-
-###################################################################################################
-# CHECK AND INSTALL dbatools MODULE IF NEEDED
-###################################################################################################
-
-if (-not (Get-Module -ListAvailable -Name dbatools)) {
-    Write-Host ""
-    Write-Warning "The required module 'dbatools' is not currently installed."
-    Write-Host "It is needed to continue running this script."
-
-    if ($autoContinue){
-        $installNow = "Y"
-    } else {
-        do {
-            $installNow = Get-ValidatedInput -PromptMessage "Would you like to install it now? (Y/N)" -ErrorMessage "Input cannot be left blank, please try again. Would you like to install it now? (Y/N)"
-            $installNow = $installNow.ToUpper()
-            } until ($installNow -match "^(Y|N)$")
-    }
-
-    if ($installNow -match '^(Y|y)$') {
-        try {
-            Install-Dbatools -autoContinue:$autoContinue -trustCert:$trustCert
-            Write-Host "dbatools has been installed successfully." -ForegroundColor Green
-        }
-        catch {
-            Write-Error "Failed to install dbatools. Please install it manually or run this script as Administrator."
-            exit 1
-        }
-    }
-    else {
-        Write-Warning "Skipping installation of dbatools. Please ensure it is installed before continuing."
-        Write-Host "You can install it manually by running:"
-        Write-Host "Install-Module dbatools -Scope CurrentUser -AllowClobber" -ForegroundColor DarkCyan
-        do {
-            $continueAnyway = Get-ValidatedInput -PromptMessage "Would you like to continue anyway? (Y/N)" -ErrorMessage "Input cannot be left blank, please try again. Would you like to continue anyway? (Y/N)"
-            $continueAnyway = $continueAnyway.ToUpper()
-            } until ($continueAnyway -match "^(Y|N)$")
-
-        if ($continueAnyway -notmatch '^(Y|y)$') {
-            Write-Host "Exiting setup. Please install dbatools and re-run the script." -ForegroundColor Yellow
-            exit 1
-        }
-    }
-}
-else {
-    Write-Host "dbatools module is already installed." -ForegroundColor Green
-}
-
-if ($trustCert -ne $true){
-    # Updating the dbatools configuration for this session only to trust server certificates and not encrypt connections
-    #   Note: This is not best practice. For more information about a more secure way to manage encyption/certificates, see this post by Chrissy LeMaire:
-    #   https://blog.netnerds.net/2023/03/new-defaults-for-sql-server-connections-encryption-trust-certificate/
-    Write-Host "    Updating dbatools configuration (for this session only) to trust server certificates, and not to encrypt connections." -ForegroundColor DarkCyan
-    Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $true
-    Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $false
-}
 
 ###################################################################################################
 # INSTALL / VALIDATE TDM CLI TOOLS
