@@ -311,6 +311,11 @@ if (-not $autoContinue) {
     Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
 }
 
+if ($autoContinue) {
+    Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
+    Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
+}
+
 ###################################################################################################
 # CONFIGURATION SUMMARY
 ###################################################################################################
