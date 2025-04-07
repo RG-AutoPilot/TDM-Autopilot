@@ -493,8 +493,8 @@ elseif ($sampleDatabase -eq "Autopilot") {
 else {
     # Fallback to default setup
     Write-Host ""
-    Write-Host "Info: You are about to create the Autopilot databases." -ForegroundColor DarkCyan
-    Write-Host "Info: This will create or update the databases: $sourceDb and $targetDb" -ForegroundColor DarkCyan
+    Write-Host "INFO: You are about to create the Autopilot databases." -ForegroundColor DarkCyan
+    Write-Host "INFO: This will create or update the databases: $sourceDb and $targetDb" -ForegroundColor DarkCyan
     if (-not $autoContinue) {
         do {
             $confirmFallbackCreate = Get-ValidatedInput -PromptMessage "> Do you want to proceed with the database creation? (y/n)" -ErrorMessage "> Please enter Y or N"
@@ -521,7 +521,7 @@ else {
 ###################################################################################################
 
 if (Test-Path $output) {
-    Write-Host "Info: Attempting to delete existing output directory..." -ForegroundColor DarkCyan
+    Write-Host "INFO: Attempting to delete existing output directory..." -ForegroundColor DarkCyan
     try {
         Remove-Item -Recurse -Force $output -ErrorAction Stop | Out-Null
         Write-Host "Successfully cleaned the output directory." -ForegroundColor Green
@@ -532,10 +532,10 @@ if (Test-Path $output) {
 }
 
 if (-not (Test-Path $output)) {
-    Write-Host "Info: Creating output directory." -ForegroundColor DarkCyan
+    Write-Host "INFO: Creating output directory." -ForegroundColor DarkCyan
     New-Item -ItemType Directory -Path $output | Out-Null
 } else {
-    Write-Host "Info: Output directory already exists. Skipping creation."
+    Write-Host "INFO: Output directory already exists. Skipping creation."
 }
 
 ###################################################################################################
