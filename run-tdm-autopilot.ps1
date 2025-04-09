@@ -177,7 +177,7 @@ if (-not $autoContinue -and -not $acceptAllDefaults) {
     $acceptAllDefaults = if ([string]::IsNullOrWhiteSpace($acceptAllDefaults)) { "Y" } else { $acceptAllDefaults.ToUpper() }
 
     if ($acceptAllDefaults -eq "Y") {
-        Write-Host "Default configuration accepted. Skipping all prompts" -ForegroundColor Green
+        Write-Host "Default configuration accepted" -ForegroundColor Green
         $acceptAllDefaults  = $acceptAllDefaults -eq "Y"
     } else {
         $acceptAllDefaults  = $acceptAllDefaults -eq "Y"
@@ -234,11 +234,9 @@ else {
 ###################################################################################################
 # AUTHENTICATION SETUP (Windows or SQL Auth)
 ###################################################################################################
-Write-Host "INFO: The current SQL Server instance is set to: $sqlInstance" -ForegroundColor DarkCyan
-
 if (-not $autoContinue -and -not $acceptAllDefaults) {
     $validInputReceived = $false
-
+    Write-Host "INFO: The current SQL Server instance is set to: $sqlInstance" -ForegroundColor DarkCyan
     do {
         Write-Host "> Enter the SQL Server instance to connect to (press Enter to keep the current value):" -ForegroundColor Yellow
         $newSqlInstance = Read-Host
@@ -261,9 +259,8 @@ if (-not $autoContinue -and -not $acceptAllDefaults) {
     }
 }
 
-Write-Host "INFO: Trust Server Certificate is currently set to: $trustCert" -ForegroundColor DarkCyan
-
 if (-not $autoContinue -and -not $acceptAllDefaults) {
+    Write-Host "INFO: Trust Server Certificate is currently set to: $trustCert" -ForegroundColor DarkCyan
     do {
         Write-Host "> Do you want to trust the SQL Server's certificate? (Y/N) [Default: Y]" -ForegroundColor Yellow
         $trustCertResponse = Read-Host
@@ -276,9 +273,8 @@ if (-not $autoContinue -and -not $acceptAllDefaults) {
     Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
 }
 
-Write-Host "INFO: Encrypt Connection is currently set to: $encryptConnection" -ForegroundColor DarkCyan
-
 if (-not $autoContinue -and -not $acceptAllDefaults) {
+    Write-Host "INFO: Encrypt Connection is currently set to: $encryptConnection" -ForegroundColor DarkCyan
     do {
         Write-Host "> Do you want to Encrypt Connection? (Y/N) [Default: Y]" -ForegroundColor Yellow
         $encryptConnectionResponse = Read-Host
@@ -302,9 +298,8 @@ $targetConnectionString = ""
 
 # Determine if Windows Auth should be used
 if ([string]::IsNullOrWhiteSpace($sqlUser) -and [string]::IsNullOrWhiteSpace($sqlPassword)) {
-    Write-Host "INFO: No SQL credentials provided. Assuming Windows Authentication." -ForegroundColor DarkCyan
-
     if (-not $autoContinue -and -not $acceptAllDefaults) {
+        Write-Host "INFO: No SQL credentials provided. Assuming Windows Authentication." -ForegroundColor DarkCyan
         Write-Host "> Do you want to proceed with Windows Authentication? (Y/N) [Default: Y]" -ForegroundColor Yellow
         $confirmWinAuth = Read-Host
         $confirmWinAuth = if ([string]::IsNullOrWhiteSpace($confirmWinAuth)) { "Y" } else { $confirmWinAuth.Trim().ToUpper() }
@@ -366,28 +361,25 @@ else {
 ###################################################################################################
 # CONFIGURATION SUMMARY
 ###################################################################################################
-Write-Host "Configuration:" -ForegroundColor DarkCyan
-Write-Host "- sqlInstance:             $sqlInstance" -ForegroundColor DarkCyan
-Write-Host "- databaseName:            $databaseName" -ForegroundColor DarkCyan
-Write-Host "- sourceDb:                $sourceDb" -ForegroundColor DarkCyan
-Write-Host "- targetDb:                $targetDb" -ForegroundColor DarkCyan
-if (-not [string]::IsNullOrWhiteSpace($backupPath)) {
-    Write-Host "- backupPath:              $backupPath" -ForegroundColor DarkCyan
+if (-not $acceptAllDefaults) {
+    Write-Host "Configuration:" -ForegroundColor DarkCyan
+    Write-Host "  - Target SQL Instance:             $sqlInstance" -ForegroundColor DarkCyan
+    Write-Host "  - Source Database:                 $sourceDb" -ForegroundColor DarkCyan
+    Write-Host "  - Target Database:                 $targetDb" -ForegroundColor DarkCyan
+    if (-not [string]::IsNullOrWhiteSpace($backupPath)) {
+    Write-Host "  - Backup Path:                     $backupPath" -ForegroundColor DarkCyan
+    }
+    Write-Host "  - Use Windows Authentication?:     $winAuth" -ForegroundColor DarkCyan
+    if (-not [string]::IsNullOrWhiteSpace($sqlUser)) {
+    Write-Host "  - Username:                        $sqlUser" -ForegroundColor DarkCyan
+    }
+    Write-Host "  - Trust Server Certificate?:       $trustCert" -ForegroundColor DarkCyan
+    Write-Host "  - Encrypt Connection?:             $encryptConnection" -ForegroundColor DarkCyan
+    Write-Host "  - Source Connection String:        $sourceConnectionStringDisplay" -ForegroundColor DarkCyan
+    Write-Host "  - Target Connection String:        $targetConnectionStringDisplay" -ForegroundColor DarkCyan
+    Write-Host "  - Skip Database Creation?:         $noRestore" -ForegroundColor DarkCyan
+    Write-Host "" 
 }
-elseif ($sampleDatabase -eq 'Autopilot_Full' -or $sampleDatabase -eq 'Autopilot') {
-    Write-Host "- schemaScript:            $schemaCreateScript" -ForegroundColor DarkCyan
-    Write-Host "- InsertScript:            $productionDataInsertScript" -ForegroundColor DarkCyan
-}
-Write-Host "- subsetterOptionsFile:    $subsetterOptionsFile" -ForegroundColor DarkCyan
-Write-Host "- Using Windows Auth:      $winAuth" -ForegroundColor DarkCyan
-Write-Host "- sourceConnectionString:  $sourceConnectionStringDisplay" -ForegroundColor DarkCyan
-Write-Host "- targetConnectionString:  $targetConnectionStringDisplay" -ForegroundColor DarkCyan
-Write-Host "- output:                  $output" -ForegroundColor DarkCyan
-Write-Host "- trustCert:               $trustCert" -ForegroundColor DarkCyan
-Write-Host "- encryptConnection:       $encryptConnection" -ForegroundColor DarkCyan
-Write-Host "- sampleDatabase:          $sampleDatabase" -ForegroundColor DarkCyan
-Write-Host "- noRestore:               $noRestore" -ForegroundColor DarkCyan
-Write-Host "" 
 
 ###################################################################################################
 # INSTALL / VALIDATE TDM CLI TOOLS
@@ -679,7 +671,7 @@ else {
     Write-Host "  USE $sourceDb" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  --USE $targetDb -- Uncomment to run on target" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue  -BackgroundColor Black  
-    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress, o.ShipCity, c.Address, c.City, c.ContactName" -ForegroundColor Blue  -BackgroundColor Black 
+    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity', c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID" -ForegroundColor Blue  -BackgroundColor Black
     Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue  -BackgroundColor Black  
 }
