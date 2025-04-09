@@ -178,6 +178,9 @@ if (-not $autoContinue -and -not $acceptAllDefaults) {
 
     if ($acceptAllDefaults -eq "Y") {
         Write-Host "Default configuration accepted. Skipping all prompts" -ForegroundColor Green
+        $acceptAllDefaults  = $acceptAllDefaults -eq "Y"
+    } else {
+        $acceptAllDefaults  = $acceptAllDefaults -eq "Y"
     }
 }
 
