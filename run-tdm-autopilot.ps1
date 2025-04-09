@@ -259,6 +259,7 @@ if (-not $autoContinue) {
 if ($autoContinue) {
     Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert
     Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $encryptConnection
+    $trustCertValue = "yes" # Sets variable to yes or no for use in the connection string logic
 }
 
 # === Connection String Construction ===
