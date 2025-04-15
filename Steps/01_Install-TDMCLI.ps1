@@ -3,6 +3,8 @@
 # Fetch parameters from environment variables if they exist
 $autoContinue = [System.Convert]::ToBoolean($env:autoContinue) 2>$null
 $acceptAllDefaults = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null
+$autopilotRootDir = $env:TDM_AUTOPILOT_ROOT
+
 
 Write-Host "INFO: Checking TDM CLI tool installation..." -ForegroundColor DarkCyan
 
@@ -36,7 +38,7 @@ if ($autoContinue -or $acceptAllDefaults) {
 
 if ($installNow) {
     try {
-        $installScriptPath = Join-Path $PSScriptRoot "Setup_Files\installTdmClis.ps1"
+        $installScriptPath = Join-Path $autopilotRootDir "Setup_Files\installTdmClis.ps1"
         if (Test-Path $installScriptPath) {
             Write-Host "INFO: Running TDM CLI install script..." -ForegroundColor DarkCyan
             powershell -ExecutionPolicy Bypass -File $installScriptPath
