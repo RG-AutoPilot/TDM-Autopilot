@@ -1,6 +1,22 @@
 # Run-Autopilot.ps1
 
 ###################################################################################################
+# Pre-Reqs: IMPORT PARAMETERS (OPTIONAL)
+###################################################################################################
+
+param (
+    [string]$autoContinue,      # If 'true', run in non-interactive mode
+    [string]$acceptAllDefaults,    # If 'true', auto-accept prompts
+    [string]$noRestore, # If 'true', auto-skips database provisioning
+    [string]$sqlInstance,
+    [string]$sqlUser,
+    [string]$sqlPassword,
+    [string]$sourceDb,
+    [string]$targetDb,
+    [string]$backupPath
+)
+
+###################################################################################################
 # Pre-Reqs: IMPORT FUNCTIONS
 ###################################################################################################
 function Prompt-ToContinue($message) {
@@ -36,7 +52,7 @@ $autoContinue = $env:autoContinue -eq $true -or $env:autoContinue -eq "true"
 $configFile = 'Autopilot-Configuration_Default.conf'
 
 if (-not $autoContinue) {
-    Write-Host "`nAvailable configuration files:" -ForegroundColor Yellow
+    Write-Host "Available configuration files:" -ForegroundColor Yellow
     for ($i = 0; $i -lt $availableConfigs.Count; $i++) {
         Write-Host "[$i] $($availableConfigs[$i])"
     }
@@ -67,6 +83,7 @@ if (-not (Test-Path $configPath)) {
     exit 1
 }
 
+# Load config from file
 $config = @{}
 Get-Content $configPath | ForEach-Object {
     $_ = $_.Trim()
@@ -83,40 +100,51 @@ Get-Content $configPath | ForEach-Object {
     }
 }
 
-# Preview the loaded config
-Write-Host "`nConfiguration Preview:" -ForegroundColor DarkCyan
-Write-Host "  - Target SQL Instance:             $($config.sqlInstance)" -ForegroundColor DarkCyan
-Write-Host "  - Source Database:                 $($config.sourceDb)" -ForegroundColor DarkCyan
-Write-Host "  - Target Database:                 $($config.targetDb)" -ForegroundColor DarkCyan
-if (-not [string]::IsNullOrWhiteSpace($config.backupPath)) {
-    Write-Host "  - Backup Path:                     $($config.backupPath)" -ForegroundColor DarkCyan
+# Apply config values only if no param was passed
+foreach ($key in $config.Keys) {
+    $paramWasSet = Get-Variable -Name $key -Scope Script -ErrorAction SilentlyContinue
+    $paramValue = if ($paramWasSet) { (Get-Variable -Name $key -Scope Script).Value } else { $null }
+
+    if ([string]::IsNullOrWhiteSpace($paramValue)) {
+        # Use value from config
+        [System.Environment]::SetEnvironmentVariable($key, $config[$key])
+    }
+    else {
+        # Use passed-in value
+        [System.Environment]::SetEnvironmentVariable($key, $paramValue)
+    }
 }
-if ([string]::IsNullOrWhiteSpace($config.sqlUser)) {
+
+# === Preview final values ===
+Write-Host "Configuration Preview:" -ForegroundColor DarkCyan
+
+Write-Host "  - Target SQL Instance:             $($env:sqlInstance)" -ForegroundColor DarkCyan
+Write-Host "  - Source Database:                 $($env:sourceDb)" -ForegroundColor DarkCyan
+Write-Host "  - Target Database:                 $($env:targetDb)" -ForegroundColor DarkCyan
+
+if (-not [string]::IsNullOrWhiteSpace($env:backupPath)) {
+    Write-Host "  - Backup Path:                     $($env:backupPath)" -ForegroundColor DarkCyan
+}
+
+if ([string]::IsNullOrWhiteSpace($env:sqlUser)) {
     Write-Host "  - Use Windows Authentication?:     true" -ForegroundColor DarkCyan
 } else {
     Write-Host "  - Use Windows Authentication?:     false" -ForegroundColor DarkCyan
-    Write-Host "  - Username:                        $($config.sqlUser)" -ForegroundColor DarkCyan
+    Write-Host "  - Username:                        $($env:sqlUser)" -ForegroundColor DarkCyan
 }
-Write-Host "  - Trust Server Certificate?:       $($config.trustCert)" -ForegroundColor DarkCyan
-Write-Host "  - Encrypt Connection?:             $($config.encryptConnection)" -ForegroundColor DarkCyan
-Write-Host "  - Skip Database Creation?:         $($config.noRestore)" -ForegroundColor DarkCyan
+
+Write-Host "  - Trust Server Certificate?:       $($env:trustCert)" -ForegroundColor DarkCyan
+Write-Host "  - Encrypt Connection?:             $($env:encryptConnection)" -ForegroundColor DarkCyan
+Write-Host "  - Skip Database Creation?:         $($env:noRestore)" -ForegroundColor DarkCyan
 Write-Host ""
 
-# Confirm with user
+# === Confirm before continuing ===
 if (-not $autoContinue) {
     if (-not (Prompt-ToContinue "> Do you want to continue with this configuration? (Y/N)")) {
         Write-Error "User aborted after reviewing configuration."
         exit 1
     }
 }
-
-# Export to environment
-$config.GetEnumerator() | ForEach-Object {
-    if (-not [string]::IsNullOrWhiteSpace($_.Value)) {
-        [System.Environment]::SetEnvironmentVariable($_.Key, $_.Value)
-    }
-}
-
 
 ###################################################################################################
 # DETECT POWERSHELL EDITION
