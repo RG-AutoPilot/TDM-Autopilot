@@ -5,15 +5,10 @@
 ###################################################################################################
 
 param (
-    [string]$autoContinue,      # If 'true', run in non-interactive mode
-    [string]$acceptAllDefaults,    # If 'true', auto-accept prompts
-    [string]$noRestore, # If 'true', auto-skips database provisioning
     [string]$sqlInstance,
     [string]$sqlUser,
     [string]$sqlPassword,
-    [string]$sourceDb,
-    [string]$targetDb,
-    [string]$backupPath
+    [string]$configFile
 )
 
 ###################################################################################################
@@ -38,7 +33,7 @@ function Prompt-ToContinue($message) {
 }
 
 ###################################################################################################
-# SELECT CONFIG FILE: Default, Full, or Backup
+# SELECT CONFIG FILE: Accept as param or prompt (Default, Full, or Backup)
 ###################################################################################################
 
 $availableConfigs = @(
@@ -48,10 +43,17 @@ $availableConfigs = @(
 )
 
 $configFolder = Join-Path $PSScriptRoot 'Config_Files'
-$autoContinue = $env:autoContinue -eq $true -or $env:autoContinue -eq "true"
-$configFile = 'Autopilot-Configuration_Default.conf'
 
-if (-not $autoContinue) {
+
+# If configFile param was passed, use it silently (e.g., from CI/CD)
+if ($configFile) {
+    Write-Host "Config file passed in as param: $configFile" -ForegroundColor Green
+
+} elseif ($autoContinue) {
+    $configFile = 'Autopilot-Configuration_Automation.conf'
+    Write-Host "Auto mode: Using Default Automation Config ($configFile)" -ForegroundColor DarkCyan
+
+} else {
     Write-Host "Available configuration files:" -ForegroundColor Yellow
     for ($i = 0; $i -lt $availableConfigs.Count; $i++) {
         Write-Host "[$i] $($availableConfigs[$i])"
@@ -65,12 +67,11 @@ if (-not $autoContinue) {
     if ($selection -match '^[0-2]$') {
         $configFile = $availableConfigs[$selection]
     } else {
+        $configFile = 'Autopilot-Configuration_Default.conf'
         Write-Host "Invalid selection. Defaulting to $configFile" -ForegroundColor Yellow
     }
 
     Write-Host "Selected config: $configFile" -ForegroundColor Green
-} else {
-    Write-Host "Auto mode: Using default config ($configFile)" -ForegroundColor DarkCyan
 }
 
 ###################################################################################################
