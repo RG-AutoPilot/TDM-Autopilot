@@ -1,0 +1,54 @@
+# 04_Subset-Data.ps1 - Subsets the source database into the target database using rgsubset
+
+# === Pull Variables from Environment ===
+$sqlInstance              = $env:sqlInstance
+$sourceDb                 = $env:sourceDb
+$targetDb                 = $env:targetDb
+$subsetterOptionsFile     = $env:subsetterOptionsFile
+$sourceConnectionString   = $env:sourceConnectionString
+$targetConnectionString   = $env:targetConnectionString
+$logLevel                 = $env:logLevel
+$autoContinue             = [System.Convert]::ToBoolean($env:autoContinue) 2>$null
+$acceptAllDefaults        = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null
+
+Write-Host "Running rgsubset to copy data..." -ForegroundColor DarkCyan
+
+# === Build the real argument list ===
+$rgsubsetArgs = @(
+    'run'
+    '--database-engine=sqlserver'
+    "--source-connection-string=$sourceConnectionString"
+    "--target-connection-string=$targetConnectionString"
+    '--target-database-write-mode=Overwrite'
+    "--log-level=$logLevel"
+)
+
+if (-not [string]::IsNullOrWhiteSpace($subsetterOptionsFile)) {
+    $rgsubsetArgs += "--options-file=$subsetterOptionsFile"
+}
+
+# === Preview the CLI with redacted connection strings ===
+$previewArgs = $rgsubsetArgs.ForEach({
+    if ($_ -like "--*connection-string=*") {
+        return ($_ -replace "=.*", "=[REDACTED]")
+    }
+    return $_
+})
+
+Write-Host "`n> CLI Command Example:" -ForegroundColor Blue
+Write-Host "  rgsubset $($previewArgs -join ' ')" -ForegroundColor Blue
+Write-Host ""
+
+# === Execute the real command ===
+try {
+    & rgsubset @rgsubsetArgs | Tee-Object -Variable rgsubsetOutput
+
+    if ($LASTEXITCODE -ne 0 -or ($rgsubsetOutput -match "ERROR")) {
+        throw "rgsubset failed with exit code $LASTEXITCODE."
+    }
+
+    Write-Host "rgsubset completed successfully." -ForegroundColor Green
+} catch {
+    Write-Error "Subsetting failed: $_"
+    exit 1
+}
