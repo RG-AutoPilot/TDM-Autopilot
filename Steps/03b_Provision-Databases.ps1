@@ -31,7 +31,12 @@ if ($noRestore) {
 
 if (-not [string]::IsNullOrWhiteSpace($sqlUser)) {
     Write-Host "INFO: Utilizing SQL Auth Credentials"
-    $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, $sqlPassword
+
+    # Convert password string to SecureString
+    $securePassword = ConvertTo-SecureString $sqlPassword -AsPlainText -Force
+
+    # Create credential object
+    $SqlCredential = New-Object System.Management.Automation.PSCredential ($sqlUser, $securePassword)
 }
 
 Write-Host "INFO: Beginning database provisioning..." -ForegroundColor DarkCyan
