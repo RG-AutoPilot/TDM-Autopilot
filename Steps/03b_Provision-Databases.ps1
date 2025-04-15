@@ -4,6 +4,8 @@
 
 # SQL Server instance and database names
 $sqlInstance        = $env:sqlInstance
+$sqlUser       = $env:sqlUser
+$sqlPassword      = $env:sqlPassword
 $sourceDb           = $env:sourceDb
 $targetDb           = $env:targetDb
 
@@ -27,26 +29,30 @@ if ($noRestore) {
     return
 }
 
+if (([string]::IsNullOrWhiteSpace($sqlUser) -or [string]::IsNullOrWhiteSpace($sqlPassword))) {
+    $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, $sqlPassword
+}
+
 Write-Host "INFO: Beginning database provisioning..." -ForegroundColor DarkCyan
 
 if ($backupPath) {
     Write-Host "INFO: Restoring databases from backup: $backupPath" -ForegroundColor Cyan
-    Restore-StagingDatabasesFromBackup -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -sourceBackupPath:$backupPath
+    Restore-StagingDatabasesFromBackup -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -sourceBackupPath:$backupPath -SqlCredential:$SqlCredential
     return
 }
 
 if ($sampleDatabase -eq "Autopilot_Full") {
     Write-Host "INFO: Creating full Autopilot suite of databases..." -ForegroundColor Cyan
-    New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript
+    New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
     return
 }
 
 if ($sampleDatabase -eq "Autopilot") {
     Write-Host "INFO: Creating standard Autopilot databases..." -ForegroundColor Cyan
-    New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript
+    New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
     return
 }
 
 # Fallback generic creation
 Write-Host "INFO: Creating fallback Autopilot databases..." -ForegroundColor Cyan
-New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript
+New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
