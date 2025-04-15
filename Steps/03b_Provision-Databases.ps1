@@ -4,8 +4,8 @@
 
 # SQL Server instance and database names
 $sqlInstance        = $env:sqlInstance
-$sqlUser       = $env:sqlUser
-$sqlPassword      = $env:sqlPassword
+$sqlUser            = $env:sqlUser
+$sqlPassword        = $env:sqlPassword
 $sourceDb           = $env:sourceDb
 $targetDb           = $env:targetDb
 
@@ -30,6 +30,7 @@ if ($noRestore) {
 }
 
 if (([string]::IsNullOrWhiteSpace($sqlUser) -or [string]::IsNullOrWhiteSpace($sqlPassword))) {
+    Write-Host "INFO: Utilizing SQL Auth Credentials"
     $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, $sqlPassword
 }
 
@@ -49,6 +50,8 @@ if ($sampleDatabase -eq "Autopilot_Full") {
 
 if ($sampleDatabase -eq "Autopilot") {
     Write-Host "INFO: Creating standard Autopilot databases..." -ForegroundColor Cyan
+    Write-Host "DEBUG: New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential"
+
     New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
     return
 }
