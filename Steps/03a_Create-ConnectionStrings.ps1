@@ -23,7 +23,9 @@ $sqlUser = $env:sqlUser
 $sqlPassword = $env:sqlPassword
 
 # Apply DbaTools configuration
+Write-Host "INFO - Setting Trust Server Certificate to $trustCert"
 Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $trustCert 
+Write-Host "INFO - Setting Encrypt Connection to $encryptConnection"
 Set-DbatoolsConfig -FullName sql.connection.encrypt    -Value $encryptConnection
 
 # Set connection string values

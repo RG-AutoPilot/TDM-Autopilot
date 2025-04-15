@@ -29,7 +29,7 @@ if ($noRestore) {
     return
 }
 
-if (([string]::IsNullOrWhiteSpace($sqlUser) -or [string]::IsNullOrWhiteSpace($sqlPassword))) {
+if (-not [string]::IsNullOrWhiteSpace($sqlUser)) {
     Write-Host "INFO: Utilizing SQL Auth Credentials"
     $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $sqlUser, $sqlPassword
 }
