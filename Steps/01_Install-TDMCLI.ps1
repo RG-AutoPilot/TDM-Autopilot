@@ -43,6 +43,8 @@ if ($installNow) {
             Write-Host "INFO: Running TDM CLI install script..." -ForegroundColor DarkCyan
             powershell -ExecutionPolicy Bypass -File $installScriptPath
             Write-Host "INFO: TDM CLI tools installed successfully." -ForegroundColor Green
+            # Refresh environment variables to include CLI path
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         } else {
             throw "Install script not found at path: $installScriptPath"
         }
