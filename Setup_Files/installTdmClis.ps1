@@ -89,7 +89,6 @@ Function Install-TdmCli {
     Write-Verbose "Config:"
     Write-Verbose "- Download URL: $downloadUrl"
     Write-Verbose "- Installation directory: $installLocation"
-    Write-Verbose "- Temp files directory: $tempPath"
 
     # Check if tdmProgramFiles and tempPath already exist, if not, create them
     if (-not (Test-Path $installLocation)){
@@ -97,12 +96,10 @@ Function Install-TdmCli {
         New-Item -ItemType Directory -Path $installLocation | Out-Null
     }
     if (-not (Test-Path $tempPath)){
-        Write-Verbose "Creating directory for temp files at: $tempPath"
         New-Item -ItemType Directory -Path $tempPath | Out-Null
     }
     # If zipPath already exists, delete it
     if (Test-Path $zipPath){
-        Write-Verbose "Removing old zip file at: $zipPath"
         Remove-Item $zipPath -Force -Recurse | Out-Null
     }
 
@@ -122,7 +119,6 @@ Function Install-TdmCli {
 	Invoke-WebRequest -Uri $downloadUrl -OutFile "$zipPath" -UseBasicParsing
     
     # Extract the zip
-    Write-Verbose "Extracting zip file to: $unzipPath"
     Add-Type -assembly "System.IO.Compression.Filesystem";
     [IO.Compression.Zipfile]::ExtractToDirectory($zipPath, "$unzipPath");
 
@@ -131,7 +127,6 @@ Function Install-TdmCli {
 
     # Delete old version, if exists
     if (Test-Path $executablePath){
-        Write-Verbose "Removing old version of $cli"
         Remove-Item $executablePath -Force -Recurse | Out-Null
     }
 
@@ -140,7 +135,6 @@ Function Install-TdmCli {
     Move-Item -Path "$unzipPath\$extractedCli" -Destination $executablePath
 
     # Delete temp files
-    Write-Verbose "Removing temp files at: $tempPath"
     Remove-Item -Recurse -Force "$tempPath"
 
     if (Test-Path $executablePath){

@@ -166,7 +166,12 @@ jobs:
         shell: powershell
         if: ${{ always() }}
         run: |
-          import-module dbatools
+          if (-not (Get-Module -ListAvailable -Name dbatools)) {
+          Write-Warning "The required module 'dbatools' is not currently installed."
+          Install-Module dbatools -Scope CurrentUser -AllowClobber -Force -ErrorAction Stop
+          Write-Host "INFO: dbatools installed successfully." -ForegroundColor Green
+          }
+          
           Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $true
           Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $false
           $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ${{ env.dbUser }}, (ConvertTo-SecureString ${{ env.dbPassword }} -AsPlainText -Force)
