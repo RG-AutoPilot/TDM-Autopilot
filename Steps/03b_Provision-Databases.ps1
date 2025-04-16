@@ -55,8 +55,6 @@ if ($sampleDatabase -eq "Autopilot_Full") {
 
 if ($sampleDatabase -eq "Autopilot") {
     Write-Host "INFO: Creating standard Autopilot databases..." -ForegroundColor Cyan
-    Write-Host "DEBUG: New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential"
-
     New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
     return
 }

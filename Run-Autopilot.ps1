@@ -241,16 +241,16 @@ Prompt-ToContinue "> Validate and Install the dbatools Module? (Y/N)"
 & "$PSScriptRoot/Steps/02_Install-DbaTools.ps1"
 
 ###################################################################################################
-# STEP 3.1: BUILD CONNECTION STRINGS BASED ON AUTH TYPE
+# STEP 3a: BUILD CONNECTION STRINGS BASED ON AUTH TYPE
 ###################################################################################################
 Write-Host "=============================================================================================" -ForegroundColor Blue
-Write-Host "STEP 3.a: Build connection strings" -ForegroundColor Cyan
+Write-Host "STEP 3a: Build connection strings" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
 & "$PSScriptRoot/Steps/03a_Create-ConnectionStrings.ps1"
 
 ###################################################################################################
-# STEP 3.2: PROVISION DATABASES (SKIP IF noRestore = true)
+# STEP 3b: PROVISION DATABASES (SKIP IF noRestore = true)
 ###################################################################################################
 $noRestore = [System.Convert]::ToBoolean([System.Environment]::GetEnvironmentVariable("noRestore"))
 if (-not $noRestore) {
@@ -296,7 +296,7 @@ if (-not $skipAuth) {
 
         if (-not $autoContinue) {
             do {
-                Write-Host "> Do you want to skip online login and use the offline permit? (Y/N) [Default: Y]" -ForegroundColor Yellow
+                Write-Host "> Do you want to skip online login and use the offline permit? (Y/N)" -ForegroundColor Yellow
                 $permitResponse = Read-Host
                 $permitResponse = if ([string]::IsNullOrWhiteSpace($permitResponse)) { "Y" } else { $permitResponse.Trim().ToUpper() }
             } until ($permitResponse -match "^(Y|N)$")

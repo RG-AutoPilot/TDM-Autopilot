@@ -31,9 +31,9 @@ if ($autoContinue -or $acceptAllDefaults) {
 } else {
     Write-Host "> Would you like to install them now? (Y/N)" -ForegroundColor Yellow
     $response = Read-Host
-    if ($response.Trim().ToUpper() -eq 'Y') {
-        $installNow = $true
-    }
+    $cleanResponse = if ([string]::IsNullOrWhiteSpace($response)) { "Y" } else { $response.Trim().ToUpper() }
+
+    $installNow = $cleanResponse -eq 'Y'
 }
 
 if ($installNow) {
