@@ -225,8 +225,6 @@ Write-Host "====================================================================
 Write-Host "STEP 1: Install Redgate TDM CLI Tools (rgsubset, rganonymize)" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-Prompt-ToContinue "> Validate and Install the Latest TDM CLIs? (Y/N)"
-
 & "$PSScriptRoot/Steps/01_Install-TDMCLI.ps1"
 
 ###################################################################################################
