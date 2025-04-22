@@ -27,10 +27,11 @@ if (-not [string]::IsNullOrWhiteSpace($subsetterOptionsFile)) {
     $rgsubsetArgs += "--options-file=$subsetterOptionsFile"
 }
 
-# === Preview the CLI with redacted connection strings ===
+# === Redact Sensitive Information ===
 $previewArgs = $rgsubsetArgs.ForEach({
     if ($_ -like "--*connection-string=*") {
-        return ($_ -replace "=.*", "=[REDACTED]")
+        # Find and redact only the password inside the connection string
+        return ($_ -replace '(?i)(Password|Pwd)=.*?(;|$)', '${1}=[REDACTED]$2')
     }
     return $_
 })

@@ -7,17 +7,13 @@
 $output               = $env:output                          # Output directory where logs/results should be saved
 $logLevel             = $env:logLevel                        # Log verbosity for the current step (e.g., info, debug, error)
 
-# Automation flags
-$autoContinue         = [System.Convert]::ToBoolean($env:autoContinue) 2>$null         # True = run without prompts
-$acceptAllDefaults    = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null    # True = accept default options automatically
-
 # === Mapping Step ===
 Write-Host "Creating masking.json from classification.json in $output" -ForegroundColor DarkCyan
 
 # === CLI Command Preview ===
 Write-Host "> CLI Command Example:" -ForegroundColor Blue
 Write-Host "  rganonymize map --classification-file=`"$output\classification.json`" --masking-file=`"$output\masking.json`" --log-level=$logLevel" -ForegroundColor Blue
-Write-Host ""  # Spacing
+Write-Host "" 
 
 try {
     $mapArgs = @(

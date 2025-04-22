@@ -8,27 +8,32 @@ $targetConnectionString = $env:targetConnectionString          # Full connection
 $output                 = $env:output                          # Output directory for classification/mapping results
 $logLevel               = $env:logLevel                        # Log level for rganonymize (e.g., info, debug, error)
 
-# Flags for automation
-$autoContinue           = [System.Convert]::ToBoolean($env:autoContinue) 2>$null         # True = run in non-interactive mode
-$acceptAllDefaults      = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null    # True = skip prompts, assume defaults
-
 Write-Host "Creating classification.json in $output" -ForegroundColor DarkCyan
 
-# === CLI Command Preview ===
-Write-Host "> CLI Command Example:" -ForegroundColor Blue
-Write-Host "  rganonymize classify --database-engine=sqlserver --connection-string=`"[REDACTED]`" --classification-file=`"$output\classification.json`" --output-all-columns --log-level=$logLevel" -ForegroundColor Blue
+# === Build real args ===
+$rganonymizeArgs = @(
+    'classify'
+    '--database-engine=sqlserver'
+    "--connection-string=$targetConnectionString"
+    "--classification-file=$output\classification.json"
+    '--output-all-columns'
+    "--log-level=$logLevel"
+)
+
+# === Redact password in preview ===
+$previewArgs = $rganonymizeArgs.ForEach({
+    if ($_ -like "--connection-string=*") {
+        return ($_ -replace '(?i)(Password|Pwd)=.*?(;|$)', '${1}=[REDACTED]$2')
+    }
+    return $_
+})
+
+Write-Host "`n> CLI Command Example:" -ForegroundColor Blue
+Write-Host "  rganonymize $($previewArgs -join ' ')" -ForegroundColor Blue
 Write-Host ""
 
+# === Execute the real command ===
 try {
-    $rganonymizeArgs = @(
-        'classify'
-        '--database-engine=sqlserver'
-        "--connection-string=$targetConnectionString"
-        "--classification-file=$output\classification.json"
-        '--output-all-columns'
-        "--log-level=$logLevel"
-    )
-
     & rganonymize @rganonymizeArgs | Tee-Object -Variable classifyOutput
 
     if ($LASTEXITCODE -ne 0 -or ($classifyOutput -match "ERROR")) {
