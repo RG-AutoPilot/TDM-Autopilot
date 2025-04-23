@@ -42,47 +42,98 @@ function Prompt-ToContinue($message) {
 }
 
 ###################################################################################################
-# SELECT CONFIG FILE: Accept as param or prompt (Default, Full, or Backup)
+# SELECT CONFIG FILE: Presume Default, Offer Others
 ###################################################################################################
 
 Write-Host "Welcome to the Autopilot for Test Data Manager (TDM): Data Treatments" -ForegroundColor Green
 
 $availableConfigs = @(
     'Autopilot-Configuration_Default.conf',
-    'Autopilot-Configuration_Full.conf',
-    'Autopilot-Configuration_Backup.conf'
+    'Autopilot-Configuration_AutopilotAllDatabases.conf',
+    'Autopilot-Configuration_RestoreCustomBackup.conf'
 )
 
 $configFolder = Join-Path $PSScriptRoot 'Config_Files'
+$defaultConfigFile = 'Autopilot-Configuration_Default.conf'
+$automationConfigFile = 'Autopilot-Configuration_Automation.conf'
 
-
-# If configFile param was passed, use it silently (e.g., from CI/CD)
+# 1. Use param if passed
 if ($configFile) {
     Write-Host "Config file passed in as param: $configFile" -ForegroundColor Green
 
+# 2. Use automation config if autoContinue is true
 } elseif ($autoContinue) {
-    $configFile = 'Autopilot-Configuration_Automation.conf'
-    Write-Host "Auto mode: Using Default Automation Config ($configFile)" -ForegroundColor DarkCyan
+    $configFile = $automationConfigFile
+    Write-Host "Auto mode: Using Automation Config ($configFile)" -ForegroundColor DarkCyan
 
+# 3. Otherwise, show default config preview and ask
 } else {
-    Write-Host "Available configuration files:" -ForegroundColor Yellow
-    for ($i = 0; $i -lt $availableConfigs.Count; $i++) {
-        Write-Host "[$i] $($availableConfigs[$i])"
+    $defaultConfigPath = Join-Path $configFolder $defaultConfigFile
+
+    if (-not (Test-Path $defaultConfigPath)) {
+        Write-Error "Missing default config file: $defaultConfigPath"
+        exit 1
     }
 
-    Write-Host "" -NoNewline
-    Write-Host "> Enter the number of the config file to use [Default: 0]:" -ForegroundColor Yellow
-    $selection = Read-Host
-    if ([string]::IsNullOrWhiteSpace($selection)) { $selection = "0" }
+    # Load preview of default config
+    $preview = @{}
+    Get-Content $defaultConfigPath | ForEach-Object {
+        $_ = $_.Trim()
+        if (-not $_ -or $_.StartsWith("#")) { return }
+        if ($_ -match '^(.*?)\s*=\s*(.*?)(\s*#.*)?$') {
+            $key = $matches[1].Trim()
+            $val = $matches[2].Trim()
+            if ($val.StartsWith('"') -and $val.EndsWith('"')) {
+                $val = $val.Substring(1, $val.Length - 2)
+            }
+            $preview[$key] = $val
+        }
+    }
 
-    if ($selection -match '^[0-2]$') {
-        $configFile = $availableConfigs[$selection]
+    # Show preview of default config
+    Write-Host "`nPreview of Default Configuration:" -ForegroundColor DarkCyan
+    Write-Host "  - Target SQL Instance:             $($preview.sqlInstance)" -ForegroundColor DarkCyan
+    Write-Host "  - Source Database:                 $($preview.sourceDb)" -ForegroundColor DarkCyan
+    Write-Host "  - Target Database:                 $($preview.targetDb)" -ForegroundColor DarkCyan
+    if (-not [string]::IsNullOrWhiteSpace($preview.backupPath)) {
+        Write-Host "  - Backup Path:                     $($preview.backupPath)" -ForegroundColor DarkCyan
+    }
+    if ([string]::IsNullOrWhiteSpace($preview.sqlUser)) {
+        Write-Host "  - Use Windows Authentication?:     true" -ForegroundColor DarkCyan
     } else {
-        $configFile = 'Autopilot-Configuration_Default.conf'
-        Write-Host "Invalid selection. Defaulting to $configFile" -ForegroundColor Yellow
+        Write-Host "  - Use Windows Authentication?:     false" -ForegroundColor DarkCyan
+        Write-Host "  - Username:                        $($preview.sqlUser)" -ForegroundColor DarkCyan
     }
+    Write-Host "  - Trust Server Certificate?:       $($preview.trustCert)" -ForegroundColor DarkCyan
+    Write-Host "  - Encrypt Connection?:             $($preview.encryptConnection)" -ForegroundColor DarkCyan
+    Write-Host "  - Skip Database Creation?:         $($preview.noRestore)" -ForegroundColor DarkCyan
+    Write-Host ""
 
-    Write-Host "Selected config: $configFile" -ForegroundColor Green
+    # Ask if they want to use the default
+    if (Prompt-ToContinue "> Would you like to use the default configuration? (Y/N)") {
+        $configFile = $defaultConfigFile
+        Write-Host "Default configuration selected: $configFile" -ForegroundColor Green
+    } else {
+        # Prompt for one of the other configs
+        Write-Host "Available configuration files:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $availableConfigs.Count; $i++) {
+            Write-Host "[$i] $($availableConfigs[$i])"
+        }
+
+        Write-Host "" -NoNewline
+        Write-Host "> Enter the number of the config file to use [Default: 0]:" -ForegroundColor Yellow
+        $selection = Read-Host
+        if ([string]::IsNullOrWhiteSpace($selection)) { $selection = "0" }
+
+        if ($selection -match '^[0-2]$') {
+            $configFile = $availableConfigs[$selection]
+        } else {
+            $configFile = $defaultConfigFile
+            Write-Host "Invalid selection. Defaulting to $configFile" -ForegroundColor Yellow
+        }
+
+        Write-Host "Selected config: $configFile" -ForegroundColor Green
+    }
 }
 
 ###################################################################################################
@@ -124,37 +175,6 @@ foreach ($key in $config.Keys) {
     else {
         # Use passed-in value
         [System.Environment]::SetEnvironmentVariable($key, $paramValue)
-    }
-}
-
-# === Preview final values ===
-Write-Host "Configuration Preview:" -ForegroundColor DarkCyan
-
-Write-Host "  - Target SQL Instance:             $($env:sqlInstance)" -ForegroundColor DarkCyan
-Write-Host "  - Source Database:                 $($env:sourceDb)" -ForegroundColor DarkCyan
-Write-Host "  - Target Database:                 $($env:targetDb)" -ForegroundColor DarkCyan
-
-if (-not [string]::IsNullOrWhiteSpace($env:backupPath)) {
-    Write-Host "  - Backup Path:                     $($env:backupPath)" -ForegroundColor DarkCyan
-}
-
-if ([string]::IsNullOrWhiteSpace($env:sqlUser)) {
-    Write-Host "  - Use Windows Authentication?:     true" -ForegroundColor DarkCyan
-} else {
-    Write-Host "  - Use Windows Authentication?:     false" -ForegroundColor DarkCyan
-    Write-Host "  - Username:                        $($env:sqlUser)" -ForegroundColor DarkCyan
-}
-
-Write-Host "  - Trust Server Certificate?:       $($env:trustCert)" -ForegroundColor DarkCyan
-Write-Host "  - Encrypt Connection?:             $($env:encryptConnection)" -ForegroundColor DarkCyan
-Write-Host "  - Skip Database Creation?:         $($env:noRestore)" -ForegroundColor DarkCyan
-Write-Host ""
-
-# === Confirm before continuing ===
-if (-not $autoContinue) {
-    if (-not (Prompt-ToContinue "> Do you want to continue with this configuration? (Y/N)")) {
-        Write-Error "User aborted after reviewing configuration."
-        exit 1
     }
 }
 
@@ -245,7 +265,10 @@ Write-Host "====================================================================
 Write-Host "STEP 2: Install dbatools module if needed" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-Prompt-ToContinue "> Validate and Install the dbatools Module? (Y/N)"
+if (Prompt-ToContinue "> Validate and Install the dbatools Module? (Y/N)") {
+    # Continue without an output
+    # Extra information can be placed here in future if required
+}
 
 & "$PSScriptRoot\Steps\Windows\02_Install-DbaTools.ps1"
 
@@ -367,7 +390,10 @@ else {
     Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue  -BackgroundColor Black
 }
 
-Prompt-ToContinue "> Have you completed the task above? (Y/N)"
+if (Prompt-ToContinue "> Have you completed the task above? (Y/N)") {
+    # Continue without an output
+    # Extra information can be placed here in future if required
+}
 
 ###################################################################################################
 # STEP 4b: SUBSET DATA
