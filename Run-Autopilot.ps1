@@ -1,5 +1,14 @@
 # Run-Autopilot.ps1
 
+# ===========================
+# File Name: Run-Autopilot.yml
+# Version: 1.0.0
+# Author: Redgate Software Ltd
+# Last Updated: 2025-04-23
+# Description: TDM Autopilot Quickstart Script
+# Last Update Comment:
+# ===========================
+
 ###################################################################################################
 # Pre-Reqs: IMPORT PARAMETERS (OPTIONAL)
 ###################################################################################################
@@ -35,6 +44,8 @@ function Prompt-ToContinue($message) {
 ###################################################################################################
 # SELECT CONFIG FILE: Accept as param or prompt (Default, Full, or Backup)
 ###################################################################################################
+
+Write-Host "Welcome to the Autopilot for Test Data Manager (TDM): Data Treatments" -ForegroundColor Green
 
 $availableConfigs = @(
     'Autopilot-Configuration_Default.conf',
@@ -225,7 +236,7 @@ Write-Host "====================================================================
 Write-Host "STEP 1: Install Redgate TDM CLI Tools (rgsubset, rganonymize)" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-& "$PSScriptRoot/Steps/01_Install-TDMCLI.ps1"
+& "$PSScriptRoot\Steps\Windows\01_Install-TDMCLI.ps1"
 
 ###################################################################################################
 # STEP 2: INSTALL DBATOOLS
@@ -236,7 +247,7 @@ Write-Host "====================================================================
 
 Prompt-ToContinue "> Validate and Install the dbatools Module? (Y/N)"
 
-& "$PSScriptRoot/Steps/02_Install-DbaTools.ps1"
+& "$PSScriptRoot\Steps\Windows\02_Install-DbaTools.ps1"
 
 ###################################################################################################
 # STEP 3a: BUILD CONNECTION STRINGS BASED ON AUTH TYPE
@@ -245,7 +256,7 @@ Write-Host "====================================================================
 Write-Host "STEP 3a: Build connection strings" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-& "$PSScriptRoot/Steps/03a_Create-ConnectionStrings.ps1"
+& "$PSScriptRoot\Steps\Windows\03a_Create-ConnectionStrings.ps1"
 
 ###################################################################################################
 # STEP 3b: PROVISION DATABASES (SKIP IF noRestore = true)
@@ -259,7 +270,7 @@ if (-not $noRestore) {
     $proceed = Prompt-ToContinue "> Proceed with provisioning sample databases? (Y/N)"
     if ($proceed) {
         try {
-            & "$PSScriptRoot/Steps/03b_Provision-Databases.ps1"
+            & "$PSScriptRoot\Steps\Windows\03b_Provision-Databases.ps1"
             if ($LASTEXITCODE -ne 0) {
                 throw "Provisioning script failed with exit code $LASTEXITCODE"
             }
@@ -347,27 +358,32 @@ if ($backupPath){
 else {
     Write-Host "$($config.targetDb) should have an identical schema, but no data" -ForegroundColor DarkCyan
     Write-Host ""
-    Write-Host "Copy and run the below SQL in blue to validate the '$($config.sourceDb)' and '$($config.targetDb)' databases:" -ForegroundColor DarkCyan
+    Write-Host "Task: Observe that '$($config.sourceDb)' has data, and '$($config.targetDb)' does not. For example, by executing the SQL below:" -ForegroundColor Yellow
     Write-Host "  USE $($config.sourceDb)" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  --USE $($config.targetDb) -- Uncomment to run on target" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue  -BackgroundColor Black  
     Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity', c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'" -ForegroundColor Blue  -BackgroundColor Black 
     Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID" -ForegroundColor Blue  -BackgroundColor Black
-    Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue  -BackgroundColor Black  
+    Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue  -BackgroundColor Black
 }
 
-Prompt-ToContinue "> Databases validated? (Y/N)"
+Prompt-ToContinue "> Have you completed the task above? (Y/N)"
 
 ###################################################################################################
 # STEP 4b: SUBSET DATA
 ###################################################################################################
 Write-Host "=============================================================================================" -ForegroundColor Blue
-Write-Host "STEP 4: Subset data using rgsubset" -ForegroundColor Cyan
+Write-Host "STEP 4: Subset data using rgsubset.exe" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-if (Prompt-ToContinue "> Proceed with subsetting using rgsubset? (Y/N)") {
+# Showcase Example CLI Command
+& "$PSScriptRoot\Steps\Windows\04_Subset-Data.ps1" -previewOnly
+
+if (Prompt-ToContinue "> Ready to copy a subset of data from $($config.sourceDb) to $($config.targetDb)? (Y/N)") {
     try {
-        & "$PSScriptRoot/Steps/04_Subset-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "rgsubset failed with exit code $LASTEXITCODE" }
+        & "$PSScriptRoot\Steps\Windows\04_Subset-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "rgsubset failed with exit code $LASTEXITCODE" }
+        Write-Host "Task: Observe that '$($config.targetDb)' now contains a subset of data from '$($config.sourceDb)'." -ForegroundColor Yellow
+        Prompt-ToContinue "> Have you completed the task above? (Y/N)"
     } catch {
         Write-Error "Subsetting failed: $_"
         if (-not [System.Convert]::ToBoolean($env:autoContinue)) {
@@ -378,6 +394,8 @@ if (Prompt-ToContinue "> Proceed with subsetting using rgsubset? (Y/N)") {
     }
 }
 
+
+
 ###################################################################################################
 # STEP 5: CLASSIFY DATA
 ###################################################################################################
@@ -385,9 +403,13 @@ Write-Host "====================================================================
 Write-Host "STEP 5: Classify data in target DB for sensitive columns" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-if (Prompt-ToContinue "> Proceed with classification using rganonymize? (Y/N)") {
+# Showcase Example CLI Command
+& "$PSScriptRoot\Steps\Windows\05_Classify-Data.ps1" -previewOnly
+
+if (Prompt-ToContinue "> Ready to classify your sensitive data in '$($config.targetDb)'? (Y/N)") {
     try {
-        & "$PSScriptRoot/Steps/05_Classify-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Classification failed with exit code $LASTEXITCODE" }
+        & "$PSScriptRoot\Steps\Windows\05_Classify-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Classification failed with exit code $LASTEXITCODE" }
+        Write-Host "Info: A classification file has been created $output\classification.json with details of sensitive data detected by TDM'$($config.sourceDb)'." -ForegroundColor Blue
     } catch {
         Write-Error "Classification failed: $_"
         if (-not [System.Convert]::ToBoolean($env:autoContinue)) {
@@ -402,12 +424,16 @@ if (Prompt-ToContinue "> Proceed with classification using rganonymize? (Y/N)") 
 # STEP 6: MAP CLASSIFIED COLUMNS TO MASKING PLAN
 ###################################################################################################
 Write-Host "=============================================================================================" -ForegroundColor Blue
-Write-Host "STEP 6: Map classification to a masking.json" -ForegroundColor Cyan
+Write-Host "STEP 6: Create masking plan for sensitive columns" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-if (Prompt-ToContinue "> Proceed with mapping using rganonymize? (Y/N)") {
+# Showcase Example CLI Command
+& "$PSScriptRoot\Steps\Windows\06_Map-Data.ps1" -previewOnly
+
+if (Prompt-ToContinue "> Ready to create masking plan for your sensitive data in '$($config.targetDb)'? (Y/N)") {
     try {
-        & "$PSScriptRoot/Steps/06_Map-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Mapping failed with exit code $LASTEXITCODE" }
+        & "$PSScriptRoot\Steps\Windows\06_Map-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Mapping failed with exit code $LASTEXITCODE" }
+        Write-Host "Info: A masking file has been created $output\masking.json with details of how to mask senstive columns created by TDM'$($config.sourceDb)'." -ForegroundColor Blue
     } catch {
         Write-Error "Mapping failed: $_"
         if (-not [System.Convert]::ToBoolean($env:autoContinue)) {
@@ -423,12 +449,15 @@ if (Prompt-ToContinue "> Proceed with mapping using rganonymize? (Y/N)") {
 # STEP 7: APPLY MASKING TO TARGET DB
 ###################################################################################################
 Write-Host "=============================================================================================" -ForegroundColor Blue
-Write-Host "STEP 7: Apply masking using masking.json" -ForegroundColor Cyan
+Write-Host "STEP 7: Apply masking using masking plan (masking.json)" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-if (Prompt-ToContinue "> Proceed with masking using rganonymize? (Y/N)") {
+# Showcase Example CLI Command
+& "$PSScriptRoot\Steps\Windows\07_Mask-Data.ps1" -previewOnly
+
+if (Prompt-ToContinue "> Ready to mask '$($config.targetDb)? (Y/N)") {
     try {
-        & "$PSScriptRoot/Steps/07_Mask-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Masking failed with exit code $LASTEXITCODE" }
+        & "$PSScriptRoot\Steps\Windows\07_Mask-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Masking failed with exit code $LASTEXITCODE" }
     } catch {
         Write-Error "Masking failed: $_"
         if (-not [System.Convert]::ToBoolean($env:autoContinue)) {
