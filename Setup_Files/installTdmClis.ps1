@@ -105,16 +105,16 @@ Function Install-TdmCli {
 
     # Ensuring the install location is added to %PATH%
     if ($env:Path -like "*$installLocation*"){
-        Write-Verbose "CLIs folder is already added to %PATH%"
+        #Write-Verbose "CLIs folder is already added to %PATH%"
     }
     else {
-        Write-Verbose "CLIs folder is not added to %PATH%"
-        Write-Verbose "- Adding $cli install location to PATH system variable."
+        #Write-Verbose "CLIs folder is not added to %PATH%"
+        #Write-Verbose "- Adding $cli install location to PATH system variable."
         [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$installLocation", "Machine")
     }
 
     # Download a fresh file with the latest version of the code
-    Write-Verbose "Downloading zip file containing latest version of $cli to: $zipPath"
+    #Write-Verbose "Downloading zip file containing latest version of $cli to: $zipPath"
     $ProgressPreference = 'SilentlyContinue'  # Disable slow progress updates
 	Invoke-WebRequest -Uri $downloadUrl -OutFile "$zipPath" -UseBasicParsing
     
@@ -131,7 +131,7 @@ Function Install-TdmCli {
     }
 
     # Move and rename extracted CLI to $executablePath
-    Write-Verbose "Copying new version of $cli to: $installLocation"
+    #Write-Verbose "Copying new version of $cli to: $installLocation"
     Move-Item -Path "$unzipPath\$extractedCli" -Destination $executablePath
 
     # Delete temp files
@@ -153,21 +153,21 @@ ForEach ($cli in $clisToInstall){
     if ($installLocation){
         # The CLI is already installed. Let's see if it's up to date.
         if (Test-LatestVersion $cli){
-            Write-Output "$cli is already installed at $installLocation. It's up to date and available to PATH. No action necessary."
+            Write-Host "$cli is already installed at $installLocation. It's up to date and available to PATH. No action necessary." -ForegroundColor DarkCyan
             $installRequired = $false
         }
         else {
-            Write-Output "$cli is already installed, but not up to date. Will install latest version in existing location: $installLocation"
+            Write-Host "$cli is already installed, but not up to date. Will install latest version in existing location: $installLocation" -ForegroundColor DarkCyan
             $installRequired = $true
         }
     }
     else {
-        Write-Output "$cli is not available to PATH. Will perform a fresh install to the default location: $defaultInstallLocation"
+        Write-Host "$cli is not available to PATH. Will perform a fresh install to the default location: $defaultInstallLocation" -ForegroundColor DarkCyan
         $installLocation = $defaultInstallLocation
         $installRequired = $true
     }
     if ($installRequired){
-        Write-Output "  Installing latest version of $cli to $installLocation..."
+        Write-Host "Installing latest version of $cli to $installLocation..." -ForegroundColor DarkCyan
         if (Install-TdmCli $cli -installLocation $installLocation -Verbose) {
             Write-Host "INFO: $cli installed successfully." -ForegroundColor Green
         }
