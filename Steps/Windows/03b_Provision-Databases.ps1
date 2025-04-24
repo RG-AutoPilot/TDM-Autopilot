@@ -19,6 +19,7 @@ $sourceDb           = $env:sourceDb
 $targetDb           = $env:targetDb
 
 # Backup and sample database-related inputs
+$autopilotRootDir         = $env:TDM_AUTOPILOT_ROOT
 $backupPath               = $env:backupPath
 $sampleDatabase           = $env:sampleDatabase
 $schemaCreateScript       = $env:schemaCreateScript
@@ -30,8 +31,23 @@ $noRestore         = [System.Convert]::ToBoolean($env:noRestore) 2>$null   # Ski
 $winAuth           = [System.Convert]::ToBoolean($env:winAuth) 2>$null     # Use Windows Auth if true
 $autoContinue      = [System.Convert]::ToBoolean($env:autoContinue) 2>$null # Non-interactive mode
 $acceptAllDefaults = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null # Assume default answers for prompts
+# Normalize relative paths from the config if they start with '.\' or './'
+function Normalize-Path {
+    param (
+        [string]$path
+    )
+    if ($path -match '^[.][\\/]' ) {
+        return Join-Path $autopilotRootDir ($path -replace '^[.][\\/]', '')
+    }
+    return $path
+}
 
 
+# Apply normalization
+$schemaCreateScript        = Normalize-Path $schemaCreateScript
+$productionDataInsertScript = Normalize-Path $productionDataInsertScript
+$testDataInsertScript      = Normalize-Path $testDataInsertScript
+$subsetterOptionsFile      = Normalize-Path $subsetterOptionsFile																		  
 # If noRestore is true, skip this step
 if ($noRestore) {
     Write-Host "INFO: Skipping database provisioning as -noRestore is set." -ForegroundColor Yellow
@@ -51,23 +67,23 @@ if (-not [string]::IsNullOrWhiteSpace($sqlUser)) {
 Write-Host "INFO: Beginning database provisioning..." -ForegroundColor DarkCyan
 
 if ($backupPath) {
-    Write-Host "INFO: Restoring databases from backup: $backupPath" -ForegroundColor Cyan
+    Write-Host "INFO: Restoring databases from backup: $backupPath" -ForegroundColor DarkCyan
     Restore-StagingDatabasesFromBackup -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -sourceBackupPath:$backupPath -SqlCredential:$SqlCredential
     return
 }
 
 if ($sampleDatabase -eq "Autopilot_Full") {
-    Write-Host "INFO: Creating full Autopilot suite of databases..." -ForegroundColor Cyan
+    Write-Host "INFO: Creating full Autopilot suite of databases..." -ForegroundColor DarkCyan
     New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
     return
 }
 
 if ($sampleDatabase -eq "Autopilot") {
-    Write-Host "INFO: Creating standard Autopilot databases..." -ForegroundColor Cyan
+    Write-Host "INFO: Creating standard Autopilot databases..." -ForegroundColor DarkCyan
     New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
     return
 }
 
 # Fallback generic creation
-Write-Host "INFO: Creating fallback Autopilot databases..." -ForegroundColor Cyan
+Write-Host "INFO: Creating fallback Autopilot databases..." -ForegroundColor DarkCyan
 New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential

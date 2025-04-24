@@ -25,7 +25,6 @@ if (-not $rootDir) {
 
 $helperFunctions      = Join-Path $rootDir "Setup_Files\helper-functions.psm1"
 
-Write-Output "  Importing helper functions"
 Import-Module $helperFunctions
 
 # === Validate Required Functions ===
@@ -41,7 +40,7 @@ $requiredFunctions | ForEach-Object {
         exit
     }
     else {
-        Write-Output "    $_ found."
+        
     }
 }
 

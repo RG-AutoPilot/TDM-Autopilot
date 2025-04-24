@@ -22,9 +22,9 @@ $logLevel             = $env:logLevel                        # Log verbosity for
 
 if ($previewOnly) {
     # === CLI Command Preview ===
-    Write-Host "> CLI Command Example:" -ForegroundColor Blue
-    Write-Host "rganonymize map --classification-file=`"$output\classification.json`" --masking-file=`"$output\masking.json`" --log-level=$logLevel" -ForegroundColor Blue
-    Write-Host "" 
+	Write-Host "> CLI Command Example:" -ForegroundColor Cyan
+	Write-Host "  rganonymize map --classification-file=`"$output\classification.json`" --masking-file=`"$output\masking.json`" --log-level=$logLevel" -ForegroundColor Blue  -BackgroundColor Black 
+	Write-Host "" 
     return
 }
 

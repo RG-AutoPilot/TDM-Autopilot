@@ -40,9 +40,9 @@ $previewArgs = $rganonymizeArgs.ForEach({
 })
 
 if ($previewOnly) {
-    Write-Host "`n> CLI Command Example:" -ForegroundColor Blue
-    Write-Host "rganonymize $($previewArgs -join ' ')" -ForegroundColor Blue
-    Write-Host ""
+	Write-Host "`n> CLI Command Example:" -ForegroundColor Cyan
+	Write-Host "  rganonymize $($previewArgs -join ' ')" -ForegroundColor Blue  -BackgroundColor Black 
+	Write-Host ""
     return
 }
 

@@ -17,6 +17,7 @@ param (
 $sqlInstance              = $env:sqlInstance
 $sourceDb                 = $env:sourceDb
 $targetDb                 = $env:targetDb
+$autopilotRootDir         = $env:TDM_AUTOPILOT_ROOT
 $subsetterOptionsFile     = $env:subsetterOptionsFile
 $sourceConnectionString   = $env:sourceConnectionString
 $targetConnectionString   = $env:targetConnectionString
@@ -24,6 +25,22 @@ $logLevel                 = $env:logLevel
 $autoContinue             = [System.Convert]::ToBoolean($env:autoContinue) 2>$null
 $acceptAllDefaults        = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null
 
+# Normalize relative paths from the config if they start with '.\' or './'
+function Normalize-Path {
+    param (
+        [string]$path
+    )
+    if ($path -match '^[.][\\/]' ) {
+        return Join-Path $autopilotRootDir ($path -replace '^[.][\\/]', '')
+    }
+    return $path
+}
+
+
+# Apply normalization (Change any .\ paths)
+$subsetterOptionsFile      = Normalize-Path $subsetterOptionsFile
+
+Write-Host "Running rgsubset to copy data..." -ForegroundColor DarkCyan																		  																	   
 # === Build the real argument list ===
 $rgsubsetArgs = @(
     'run'
@@ -48,9 +65,9 @@ $previewArgs = $rgsubsetArgs.ForEach({
 })
 
 if ($previewOnly) {
-    Write-Host "`n> CLI Command Example:" -ForegroundColor Blue
-    Write-Host "rgsubset $($previewArgs -join ' ')" -ForegroundColor Blue
-    Write-Host ""
+	Write-Host "`n> CLI Command Example:" -ForegroundColor Cyan
+	Write-Host "  rgsubset $($previewArgs -join ' ')" -ForegroundColor Blue  -BackgroundColor Black 
+	Write-Host ""
     return
 }
 
