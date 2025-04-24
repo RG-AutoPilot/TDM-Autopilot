@@ -191,7 +191,10 @@ Write-Host "INFO: Detected PowerShell Edition: $($PSVersionTable.PSEdition)" -Fo
 ###################################################################################################
 
 if (-not $iAgreeToTheRedgateEula){
-    Prompt-ToContinue "> Do you agree to the Redgate End User License Agreement (EULA)? (Y/N)"
+    if (Prompt-ToContinue "> Do you agree to the Redgate End User License Agreement (EULA)? (Y/N)") {
+        # Continue without an output
+        # Extra information can be placed here in future if required
+    }
 }
 
 ###################################################################################################
