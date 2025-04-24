@@ -45,7 +45,7 @@ function Prompt-ToContinue($message) {
 # SELECT CONFIG FILE: Presume Default, Offer Others
 ###################################################################################################
 
-Write-Host "Welcome to the Autopilot for Test Data Manager (TDM): Data Treatments" -ForegroundColor Green
+Write-Host "Welcome to the Autopilot for Test Data Manager (TDM): Data Treatment" -ForegroundColor Green
 
 $availableConfigs = @(
     'Autopilot-Configuration_Default.conf',
@@ -293,7 +293,7 @@ if (-not $noRestore) {
     Write-Host "STEP 3b: Provision Databases from scripts or backup" -ForegroundColor Cyan
     Write-Host "=============================================================================================" -ForegroundColor Blue
 
-    $proceed = Prompt-ToContinue "> Proceed with provisioning databases $($config.sourceDb) and $($config.targetDb)? (Y/N)"
+    $proceed = Prompt-ToContinue "> Proceed with provisioning databases '$($config.sourceDb)' and '$($config.targetDb)'? (Y/N)"
     if ($proceed) {
         try {
             & "$PSScriptRoot\Steps\Windows\03b_Provision-Databases.ps1"
