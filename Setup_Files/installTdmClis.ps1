@@ -169,7 +169,7 @@ ForEach ($cli in $clisToInstall){
     if ($installRequired){
         Write-Output "  Installing latest version of $cli to $installLocation..."
         if (Install-TdmCli $cli -installLocation $installLocation -Verbose) {
-            Write-Output "  $cli installed successfully"
+            Write-Host "INFO: $cli installed successfully." -ForegroundColor Green
         }
         else {
             Write-Error "Failed to install $cli"
