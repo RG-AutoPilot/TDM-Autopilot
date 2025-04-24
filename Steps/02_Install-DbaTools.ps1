@@ -17,7 +17,7 @@ if (-not $rootDir) {
 $installTdmClisScript = Join-Path $rootDir "Setup_Files/installTdmClis.ps1"
 $helperFunctions      = Join-Path $rootDir "Setup_Files/helper-functions.psm1"
 
-Write-Output "  Importing helper functions"
+# Write-Output "  Importing helper functions"
 Import-Module $helperFunctions
 
 # === Validate Required Functions ===
@@ -33,7 +33,7 @@ $requiredFunctions | ForEach-Object {
         exit
     }
     else {
-        Write-Output "    $_ found."
+        # Write-Output "    $_ found."
     }
 }
 
