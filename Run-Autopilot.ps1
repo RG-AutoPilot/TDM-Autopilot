@@ -293,7 +293,7 @@ if (-not $noRestore) {
     Write-Host "STEP 3b: Provision Databases from scripts or backup" -ForegroundColor Cyan
     Write-Host "=============================================================================================" -ForegroundColor Blue
 
-    $proceed = Prompt-ToContinue "> Proceed with provisioning sample databases? (Y/N)"
+    $proceed = Prompt-ToContinue "> Proceed with provisioning databases $($config.sourceDb) and $($config.targetDb)? (Y/N)"
     if ($proceed) {
         try {
             & "$PSScriptRoot\Steps\Windows\03b_Provision-Databases.ps1"
