@@ -268,7 +268,7 @@ Write-Host "====================================================================
 Write-Host "STEP 2: Install dbatools module if needed" -ForegroundColor Cyan
 Write-Host "=============================================================================================" -ForegroundColor Blue
 
-if (Prompt-ToContinue "> Validate and Install the dbatools Module? (Y/N)") {
+if (Prompt-ToContinue "> Validate and install the dbatools module? (Y/N)") {
     # Continue without an output
     # Extra information can be placed here in future if required
 }
