@@ -484,7 +484,7 @@ Write-Host "====================================================================
 # Showcase Example CLI Command
 & "$PSScriptRoot\Steps\Windows\07_Mask-Data.ps1" -previewOnly
 
-if (Prompt-ToContinue "> Ready to mask '$($config.targetDb)? (Y/N)") {
+if (Prompt-ToContinue "> Ready to mask '$($config.targetDb)'? (Y/N)") {
     try {
         & "$PSScriptRoot\Steps\Windows\07_Mask-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "Masking failed with exit code $LASTEXITCODE" }
     } catch {
