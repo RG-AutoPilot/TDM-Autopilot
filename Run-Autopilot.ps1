@@ -408,7 +408,7 @@ Write-Host "====================================================================
 # Showcase Example CLI Command
 & "$PSScriptRoot\Steps\Windows\04_Subset-Data.ps1" -previewOnly
 
-if (Prompt-ToContinue "> Ready to copy a subset of data from $($config.sourceDb) to $($config.targetDb)? (Y/N)") {
+if (Prompt-ToContinue "> Ready to copy a subset of data from '$($config.sourceDb)' to '$($config.targetDb)'? (Y/N)") {
     try {
         & "$PSScriptRoot\Steps\Windows\04_Subset-Data.ps1"; if ($LASTEXITCODE -ne 0) { throw "rgsubset failed with exit code $LASTEXITCODE" }
         Write-Host "Task: Observe that '$($config.targetDb)' now contains a subset of data from '$($config.sourceDb)'." -ForegroundColor Yellow
