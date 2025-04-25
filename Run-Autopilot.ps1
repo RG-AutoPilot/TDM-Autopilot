@@ -348,12 +348,12 @@ if (-not $skipAuth) {
     }
 
     if (-not $skipBecauseOfPermit) {
-        Write-Host "INFO:  Authorizing rgsubset, and starting a trial (if not already started):"
+        Write-Host "INFO:  Authorizing rgsubset, and starting a trial (if not already started):" -ForegroundColor DarkCyan
         Write-Host "CMD:    rgsubset auth login --i-agree-to-the-eula --start-trial" -ForegroundColor Blue
         & rgsubset auth login --i-agree-to-the-eula --start-trial
 
         Write-Host ""
-        Write-Host "INFO:  Authorizing rganonymize:"
+        Write-Host "INFO:  Authorizing rganonymize, and starting a trial (if not already started):" -ForegroundColor DarkCyan
         Write-Host "CMD:    rganonymize auth login --i-agree-to-the-eula" -ForegroundColor Blue
         & rganonymize auth login --i-agree-to-the-eula
     }

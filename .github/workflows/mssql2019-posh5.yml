@@ -102,7 +102,7 @@ jobs:
           # Create an empty SQL Server instance on which to run autopilot
           Write-Output "Creating data container"
           $emptyDiName = 'autopilot-sqlserver-2019-empty'
-          $output = .\rgclone create dc -i $emptyDiName -t 20m -o json | ConvertFrom-Json
+          $output = .\rgclone create dc -i $emptyDiName -t 15m -o json | ConvertFrom-Json
           $dbPassword = $output.password
           $dbUser = $output.user
           $sqlhost = $output.host
