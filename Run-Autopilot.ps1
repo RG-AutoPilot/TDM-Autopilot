@@ -191,6 +191,7 @@ Write-Host "INFO: Detected PowerShell Edition: $($PSVersionTable.PSEdition)" -Fo
 ###################################################################################################
 
 if (-not $iAgreeToTheRedgateEula){
+    Write-Host "The Redgate EULA can be found here: https://www.red-gate.com/support/license/" -ForegroundColor DarkCyan
     if (Prompt-ToContinue "> Do you agree to the Redgate End User License Agreement (EULA)? (Y/N)") {
         # Continue without an output
         # Extra information can be placed here in future if required
@@ -271,16 +272,15 @@ Write-Host "====================================================================
 if (Prompt-ToContinue "> Validate and install the dbatools module? (Y/N)") {
     # Continue without an output
     # Extra information can be placed here in future if required
+    & "$PSScriptRoot\Steps\Windows\02_Install-DbaTools.ps1"
 }
-
-& "$PSScriptRoot\Steps\Windows\02_Install-DbaTools.ps1"
 
 ###################################################################################################
 # STEP 3a: BUILD CONNECTION STRINGS BASED ON AUTH TYPE
 ###################################################################################################
-Write-Host "=============================================================================================" -ForegroundColor Blue
-Write-Host "STEP 3a: Build connection strings" -ForegroundColor Cyan
-Write-Host "=============================================================================================" -ForegroundColor Blue
+#Write-Host "=============================================================================================" -ForegroundColor Blue
+#Write-Host "STEP 3a: Build connection strings" -ForegroundColor Cyan
+#Write-Host "=============================================================================================" -ForegroundColor Blue
 
 & "$PSScriptRoot\Steps\Windows\03a_Create-ConnectionStrings.ps1"
 
@@ -290,7 +290,7 @@ Write-Host "====================================================================
 $noRestore = [System.Convert]::ToBoolean([System.Environment]::GetEnvironmentVariable("noRestore"))
 if (-not $noRestore) {
     Write-Host "=============================================================================================" -ForegroundColor Blue
-    Write-Host "STEP 3b: Provision Databases from scripts or backup" -ForegroundColor Cyan
+    Write-Host "STEP 3: Provision Databases from scripts or backup" -ForegroundColor Cyan
     Write-Host "=============================================================================================" -ForegroundColor Blue
 
     $proceed = Prompt-ToContinue "> Proceed with provisioning databases '$($config.sourceDb)' and '$($config.targetDb)'? (Y/N)"
@@ -378,25 +378,42 @@ Write-Host "====================================================================
 Write-Host "Observe:" -ForegroundColor DarkCyan
 Write-Host "There should now be two databases on the $($config.sqlInstance) server: $($config.sourceDb) and $($config.targetDb)" -ForegroundColor DarkCyan
 Write-Host "$($config.sourceDb) should contain some data" -ForegroundColor DarkCyan 
-if ($backupPath){
+
+if ($backupPath) {
     Write-Host "$($config.targetDb) should be identical. In an ideal world, it would be schema identical, but empty of data." -ForegroundColor DarkCyan
-}
-else {
+} else {
     Write-Host "$($config.targetDb) should have an identical schema, but no data" -ForegroundColor DarkCyan
     Write-Host ""
     Write-Host "Task: Observe that '$($config.sourceDb)' has data, and '$($config.targetDb)' does not. For example, by executing the SQL below:" -ForegroundColor Yellow
-    Write-Host "  USE $($config.sourceDb)" -ForegroundColor Blue  -BackgroundColor Black 
-    Write-Host "  --USE $($config.targetDb) -- Uncomment to run on target" -ForegroundColor Blue  -BackgroundColor Black 
-    Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue  -BackgroundColor Black  
-    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity', c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'" -ForegroundColor Blue  -BackgroundColor Black 
-    Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID" -ForegroundColor Blue  -BackgroundColor Black
-    Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue  -BackgroundColor Black
+    
+    # Output to screen
+    Write-Host "  USE $($config.sourceDb)" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  --USE $($config.targetDb) -- Uncomment to run on target" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity', c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue -BackgroundColor Black
+
+    # Copy to clipboard
+    $sqlExample = @"
+USE $($config.sourceDb)
+--USE $($config.targetDb) -- Uncomment to run on target
+SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;
+SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity',
+       c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'
+FROM Sales.Customers c
+JOIN Sales.Orders o ON o.CustomerID = c.CustomerID
+ORDER BY o.OrderID ASC;
+"@
+
+    $sqlExample | Set-Clipboard
+    Write-Host "`nINFO: The SQL query above has been copied to your clipboard." -ForegroundColor Green
 }
 
 if (Prompt-ToContinue "> Have you completed the task above? (Y/N)") {
-    # Continue without an output
-    # Extra information can be placed here in future if required
+    # Proceed to next step
 }
+
 
 ###################################################################################################
 # STEP 4b: SUBSET DATA
