@@ -190,11 +190,13 @@ Write-Host "INFO: Detected PowerShell Edition: $($PSVersionTable.PSEdition)" -Fo
 # REDGATE EULA AGREEMENT
 ###################################################################################################
 
-if (-not $iAgreeToTheRedgateEula){
+if (-not $iAgreeToTheRedgateEula) {
     Write-Host "The Redgate EULA can be found here: https://www.red-gate.com/support/license/" -ForegroundColor DarkCyan
     if (Prompt-ToContinue "> Do you agree to the Redgate End User License Agreement (EULA)? (Y/N)") {
-        # Continue without an output
-        # Extra information can be placed here in future if required
+        # EULA accepted — continue
+    } else {
+        Write-Host "Redgate EULA not accepted. Exiting gracefully." -ForegroundColor Yellow
+        exit 0
     }
 }
 
