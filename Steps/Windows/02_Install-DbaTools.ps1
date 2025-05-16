@@ -5,7 +5,7 @@
 # Version: 1.0.0
 # Author: Redgate Software Ltd
 # Last Updated: 2025-04-23
-# Description: Dba Tools Module Installation Script
+# Description: DBA Tools Module Installation Script
 # Last Update Comment:
 # ===========================
 
@@ -13,36 +13,6 @@
 $autoContinue = [System.Convert]::ToBoolean($env:autoContinue) 2>$null
 $acceptAllDefaults = [System.Convert]::ToBoolean($env:acceptAllDefaults) 2>$null
 
-###################################################################################################
-# IMPORT FUNCTIONS & VALIDATE DEPENDENCIES
-###################################################################################################
-# Get root directory of the project from environment (set in Run-Autopilot.ps1)
-$rootDir = [System.Environment]::GetEnvironmentVariable("TDM_AUTOPILOT_ROOT")
-if (-not $rootDir) {
-    Write-Error "TDM_AUTOPILOT_ROOT not set. Please run via Run-Autopilot.ps1."
-    exit 1
-}
-
-$helperFunctions      = Join-Path $rootDir "Setup_Files\helper-functions.psm1"
-
-Import-Module $helperFunctions
-
-# === Validate Required Functions ===
-$requiredFunctions = @(
-    "Install-Dbatools",
-    "New-SampleDatabases",
-    "New-SampleDatabasesAutopilotFull",
-    "Restore-StagingDatabasesFromBackup"
-)
-$requiredFunctions | ForEach-Object {
-    if (-not (Get-Command $_ -ErrorAction SilentlyContinue)){
-        Write-Error "  Error: Required function $_ not found. Please review any errors above."
-        exit
-    }
-    else {
-        
-    }
-}
 
 Write-Host "INFO: Starting dbatools module check..." -ForegroundColor DarkCyan
 

@@ -274,6 +274,7 @@ Write-Host "====================================================================
 if (Prompt-ToContinue "> Validate and install the dbatools module? (Y/N)") {
     # Continue without an output
     # Extra information can be placed here in future if required
+    & "$PSScriptRoot\Steps\Windows\00_Import-HelperFunctions.ps1"
     & "$PSScriptRoot\Steps\Windows\02_Install-DbaTools.ps1"
 }
 
@@ -298,10 +299,8 @@ if (-not $noRestore) {
     $proceed = Prompt-ToContinue "> Proceed with provisioning databases '$($config.sourceDb)' and '$($config.targetDb)'? (Y/N)"
     if ($proceed) {
         try {
+            & "$PSScriptRoot\Steps\Windows\00_Import-HelperFunctions.ps1"
             & "$PSScriptRoot\Steps\Windows\03b_Provision-Databases.ps1"
-            if ($LASTEXITCODE -ne 0) {
-                throw "Provisioning script failed with exit code $LASTEXITCODE"
-            }
         } catch {
             Write-Error "Step failed: $_"
             exit 1
