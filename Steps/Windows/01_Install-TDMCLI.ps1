@@ -30,7 +30,7 @@ $installScriptPath = Join-Path $autopilotRootDir "Setup_Files\installTdmClis.ps1
 
 # === If all tools are installed, prompt to check for updates ===
 if ($missingTools.Count -eq 0) {
-    Write-Host "INFO: All required TDM CLI tools are already installed." -ForegroundColor Green
+    Write-Host "All required TDM CLI tools are already installed." -ForegroundColor Green
 
     $checkForUpdates = $false
     if ($autoContinue -or $acceptAllDefaults) {
