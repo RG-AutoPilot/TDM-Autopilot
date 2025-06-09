@@ -1,0 +1,79 @@
+{
+  "jsonSchemaVersion": 1,
+  "sourceDatabaseSizeInBytes": 2007040,
+  "targetDatabaseSizeInBytes": 0,
+  "tables": [
+    {
+      "schema": "Logistics",
+      "name": "EmployeeTerritories",
+      "sourceRows": 49,
+      "targetRows": 28
+    },
+    {
+      "schema": "Logistics",
+      "name": "Region",
+      "sourceRows": 4,
+      "targetRows": 4
+    },
+    {
+      "schema": "Logistics",
+      "name": "Shippers",
+      "sourceRows": 3,
+      "targetRows": 3
+    },
+    {
+      "schema": "Logistics",
+      "name": "Suppliers",
+      "sourceRows": 29,
+      "targetRows": 22
+    },
+    {
+      "schema": "Operation",
+      "name": "Categories",
+      "sourceRows": 8,
+      "targetRows": 8
+    },
+    {
+      "schema": "Operation",
+      "name": "Employees",
+      "sourceRows": 9,
+      "targetRows": 6
+    },
+    {
+      "schema": "Operation",
+      "name": "Products",
+      "sourceRows": 77,
+      "targetRows": 29
+    },
+    {
+      "schema": "Sales",
+      "name": "Customers",
+      "sourceRows": 91,
+      "targetRows": 11
+    },
+    {
+      "schema": "Sales",
+      "name": "CustomersFeedback",
+      "sourceRows": 1000,
+      "targetRows": 0
+    },
+    {
+      "schema": "Sales",
+      "name": "Order Details",
+      "sourceRows": 2155,
+      "targetRows": 34
+    },
+    {
+      "schema": "Sales",
+      "name": "Orders",
+      "sourceRows": 830,
+      "targetRows": 12
+    },
+    {
+      "schema": "Sales",
+      "name": "Territories",
+      "sourceRows": 53,
+      "targetRows": 28
+    }
+  ]
+}
