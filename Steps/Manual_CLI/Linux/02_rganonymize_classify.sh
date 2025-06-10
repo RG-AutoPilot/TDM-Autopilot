@@ -1,5 +1,5 @@
 #!/bin/bash
-# filepath: c:\Redgate\GIT\Repos\GitHub\Autopilot\Development\TDM-Autopilot\Steps\Manual_CLI\Linux\02_rganonymize_classify.sh
+# Make the script executable: chmod +x 02_rganonymize_classify.sh
 
 # Classify data using rganonymize
 # This script uses hardcoded values by default.
@@ -8,6 +8,11 @@
 # export DB_ENGINE="PostgreSql"
 # export TARGET_CONN_STRING="Server=...;Database=...;..."
 # ./02_rganonymize_classify.sh
+
+
+# TDM Licensing Paramaters https://documentation.red-gate.com/testdatamanager/getting-started/licensing/activating-your-license
+REDGATE_LICENSING_PAT_EMAIL=${REDGATE_LICENSING_PAT_EMAIL:-"MyEmailHere"}
+REDGATE_LICENSING_PAT_KEY=${REDGATE_LICENSING_PAT_KEY:-"MyKeyHere"}
 
 # Project directory and config path
 PROJECT_DIRECTORY=${PROJECT_DIRECTORY:-"/mnt/c/Redgate/GIT/Repos/GitHub/Autopilot/Development/TDM-Autopilot"}
@@ -32,6 +37,16 @@ if [ -z "$TARGET_CONN_STRING" ]; then
 fi
 
 CLASSIFICATION_FILE=${CLASSIFICATION_FILE:-"$PROJECT_CONFIGURATION_DIRECTORY/classification.json"}
+
+# Toggle for loading environment variables
+RELOAD_SERVER_VARS=${RELOAD_SERVER_VARS:-"yes"}
+
+if [ "$RELOAD_SERVER_VARS" = "yes" ]; then
+    echo "INFO: Loading environment variables from ~/.bashrc"
+    source ~/.bashrc
+else
+    echo "INFO: Skipping environment variable loading from ~/.bashrc"
+fi
 
 echo "Running classification for database engine: $DB_ENGINE"
 

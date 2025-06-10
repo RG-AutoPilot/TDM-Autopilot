@@ -1,5 +1,5 @@
 #!/bin/bash
-# filepath: c:\Redgate\GIT\Repos\GitHub\Autopilot\Development\TDM-Autopilot\Steps\Manual_CLI\Linux\04_rganonymize_mask.sh
+# Make the script executable: chmod +x 04_rganonymize_mask.sh
 
 # Mask data using rganonymize
 # This script uses hardcoded values by default.
@@ -9,6 +9,11 @@
 # export TARGET_CONN_STRING="Server=...;Database=...;..."
 # export MASKING_FILE="path/to/masking.json"
 # ./04_rganonymize_mask.sh
+
+
+# TDM Licensing Paramaters https://documentation.red-gate.com/testdatamanager/getting-started/licensing/activating-your-license
+REDGATE_LICENSING_PAT_EMAIL=${REDGATE_LICENSING_PAT_EMAIL:-"MyEmailHere"}
+REDGATE_LICENSING_PAT_KEY=${REDGATE_LICENSING_PAT_KEY:-"MyKeyHere"}
 
 # Project directory and config path
 PROJECT_DIRECTORY=${PROJECT_DIRECTORY:-"/mnt/c/Redgate/GIT/Repos/GitHub/Autopilot/Development/TDM-Autopilot"}
@@ -33,6 +38,16 @@ if [ -z "$TARGET_CONN_STRING" ]; then
 fi
 
 MASKING_FILE=${MASKING_FILE:-"$PROJECT_CONFIGURATION_DIRECTORY/masking.json"}
+
+# Toggle for loading environment variables
+RELOAD_SERVER_VARS=${RELOAD_SERVER_VARS:-"yes"}
+
+if [ "$RELOAD_SERVER_VARS" = "yes" ]; then
+    echo "INFO: Loading environment variables from ~/.bashrc"
+    source ~/.bashrc
+else
+    echo "INFO: Skipping environment variable loading from ~/.bashrc"
+fi
 
 echo "Running masking for database engine: $DB_ENGINE"
 

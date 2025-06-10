@@ -1,7 +1,7 @@
 {
   "jsonSchemaVersion": 1,
   "sourceDatabaseSizeInBytes": 2007040,
-  "targetDatabaseSizeInBytes": 0,
+  "targetDatabaseSizeInBytes": 802816,
   "tables": [
     {
       "schema": "Logistics",

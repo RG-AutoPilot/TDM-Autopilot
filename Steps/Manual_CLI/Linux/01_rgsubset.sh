@@ -1,5 +1,5 @@
 #!/bin/bash
-# filepath: c:\Redgate\GIT\Repos\GitHub\Autopilot\Development\TDM-Autopilot\Steps\Manual_CLI\Linux\01_rgsubset.sh
+# Make the script executable: chmod +x 01_rgsubset.sh
 
 # Subset data using rgsubset
 # This script uses hardcoded values by default.
@@ -8,6 +8,10 @@
 # export DB_ENGINE="PostgreSql"
 # export SOURCE_CONN_STRING="Server=...;Database=...;..."
 # ./01_rgsubset.sh
+
+# TDM Licensing Paramaters https://documentation.red-gate.com/testdatamanager/getting-started/licensing/activating-your-license
+REDGATE_LICENSING_PAT_EMAIL=${REDGATE_LICENSING_PAT_EMAIL:-"MyEmailHere"}
+REDGATE_LICENSING_PAT_KEY=${REDGATE_LICENSING_PAT_KEY:-"MyKeyHere"}
 
 # Project directory and config path
 PROJECT_DIRECTORY=${PROJECT_DIRECTORY:-"/mnt/c/Redgate/GIT/Repos/GitHub/Autopilot/Development/TDM-Autopilot"}
@@ -41,6 +45,16 @@ if [ -z "$TARGET_CONN_STRING" ]; then
     TARGET_USER=${TARGET_USER:-"sa"}
     TARGET_PASSWORD=${TARGET_PASSWORD:-"Redg@te1"}
     TARGET_CONN_STRING="Server=$TARGET_HOST,$TARGET_PORT;Database=$TARGET_DB;Trust Server Certificate=$TRUST_CERT;Encrypt=$ENCRYPT;User ID=$TARGET_USER;Password=$TARGET_PASSWORD"
+fi
+
+# Toggle for loading environment variables
+RELOAD_SERVER_VARS=${RELOAD_SERVER_VARS:-"yes"}
+
+if [ "$RELOAD_SERVER_VARS" = "yes" ]; then
+    echo "INFO: Loading environment variables from ~/.bashrc"
+    source ~/.bashrc
+else
+    echo "INFO: Skipping environment variable loading from ~/.bashrc"
 fi
 
 echo "Running subset for database engine: $DB_ENGINE"
