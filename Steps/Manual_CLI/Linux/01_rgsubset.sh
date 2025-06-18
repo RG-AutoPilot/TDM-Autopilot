@@ -24,6 +24,9 @@ SOURCE_CONN_STRING="Server=Localhost;Database=AutopilotProd_FullRestore;User Id=
 TARGET_CONN_STRING="Server=Localhost;Database=Autopilot_Treated;User Id=TDMUser;Password=Password123;Trust Server Certificate=true;"
 OPTIONS_FILE="../subset-options.json"
 OUTPUT_FILE="../subset_log.json"
+# Perform a dry-run with no subsetting applied by turning to true
+DRY_RUN="false"
+# Set the log level to Verbose for detailed output
 LOG_LEVEL="Verbose"
 
 
@@ -35,5 +38,6 @@ rgsubset run \
   --target-connection-string "$TARGET_CONN_STRING" \
   --target-database-write-mode Overwrite \
   --options-file "$OPTIONS_FILE" \
+  --dry-run "$DRY_RUN" \
   --log-level "$LOG_LEVEL" \
   --output-file "$OUTPUT_FILE"
