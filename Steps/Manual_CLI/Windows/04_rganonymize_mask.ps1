@@ -1,40 +1,28 @@
-# This script uses hardcoded values by default.
-# You can override any value by setting an environment variable before running the script.
-# Example:
-# $env:DB_ENGINE = "PostgreSql"
-# $env:TARGET_CONN_STRING = "Server=...;Database=...;..."
-# .\ScriptName.ps1
+# Mask data using rganonymize
+# This script demonstrates how to run the rganonymize CLI command with example values.
+# For more details, visit: https://documentation.red-gate.com/testdatamanager
+#
+# Key Options:
+#   --database-engine: The database engine to use (e.g., SqlServer, PostgreSql).
+#   --connection-string: Connection string for the database.
+#   --masking-file: Path to the JSON file containing masking rules.
+#   --log-level: Logging level (e.g., Verbose, Info, Error).
 
-# Project directory and config path
-$PROJECT_DIRECTORY = if ($env:PROJECT_DIRECTORY) { $env:PROJECT_DIRECTORY } else { "C:\git\Demos\TDM-AutoPilot" }
-$PROJECT_CONFIGURATION_DIRECTORY = Join-Path $PROJECT_DIRECTORY "Steps\Manual_CLI\Configuration"
-
-# CLI parameters
-$DB_ENGINE    = if ($env:DB_ENGINE)    { $env:DB_ENGINE }    else { "SqlServer" }
-$LOG_LEVEL    = if ($env:LOG_LEVEL)    { $env:LOG_LEVEL }    else { "Verbose" }
-
-# Optional flags
-$TRUST_CERT = if ($env:TRUST_SERVER_CERTIFICATE) { $env:TRUST_SERVER_CERTIFICATE } else { "yes" }
-$ENCRYPT    = if ($env:ENCRYPT)                  { $env:ENCRYPT }                  else { "no" }
-
-# Target connection
-$TARGET_CONN_STRING = if ($env:TARGET_CONN_STRING) {
-    $env:TARGET_CONN_STRING
-} else {
-    $TARGET_HOST     = if ($env:TARGET_HOST)     { $env:TARGET_HOST }     else { "127.0.0.1" }
-    $TARGET_PORT     = if ($env:TARGET_PORT)     { $env:TARGET_PORT }     else { "1433" }
-    $TARGET_DB       = if ($env:TARGET_DB)       { $env:TARGET_DB }       else { "Autopilot_Treated" }
-    $TARGET_USER     = if ($env:TARGET_USER)     { $env:TARGET_USER }     else { "Redgate" }
-    $TARGET_PASSWORD = if ($env:TARGET_PASSWORD) { $env:TARGET_PASSWORD } else { "Redg@te1" }
-    "Server=$TARGET_HOST,$TARGET_PORT;Database=$TARGET_DB;Trust Server Certificate=$TRUST_CERT;Encrypt=$ENCRYPT;User ID=$TARGET_USER;Password=$TARGET_PASSWORD"
-}
-
-$MASKING_FILE = if ($env:MASKING_FILE) { $env:MASKING_FILE } else { Join-Path $PROJECT_CONFIGURATION_DIRECTORY "masking.json" }
+# Example values
+$DB_ENGINE = "SqlServer"
+$CONNECTION_STRING = "Server=Localhost\SQLEXPRESS;Database=Autopilot_Treated;User Id=TDMUser;Password=Password123;Trust Server Certificate=true;"
+$MASKING_FILE = "..\masking.json"
+$OPTIONS_FILE = "..\masking-options.json"
+# https://documentation.red-gate.com/testdatamanager/command-line-interface-cli/anonymization/masking/enabling-deterministic-masking
+$DETERMINISTIC_SEED="my-secret-seed" # Can be any string, but must be at least 4 characters long
+$LOG_LEVEL = "Verbose"
 
 Write-Host "Running masking for database engine: $DB_ENGINE"
 
 rganonymize mask `
   --database-engine $DB_ENGINE `
-  --connection-string "$TARGET_CONN_STRING" `
+  --connection-string "$CONNECTION_STRING" `
   --masking-file $MASKING_FILE `
+  --options-file "$OPTIONS_FILE" `
+  --deterministic-seed "$DETERMINISTIC_SEED" `
   --log-level $LOG_LEVEL

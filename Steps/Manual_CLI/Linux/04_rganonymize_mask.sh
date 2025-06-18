@@ -1,58 +1,34 @@
 #!/bin/bash
-# Make the script executable: chmod +x 04_rganonymize_mask.sh
+# filepath:
 
 # Mask data using rganonymize
-# This script uses hardcoded values by default.
-# You can override any value by setting an environment variable before running the script.
-# Example:
-# export DB_ENGINE="PostgreSql"
-# export TARGET_CONN_STRING="Server=...;Database=...;..."
-# export MASKING_FILE="path/to/masking.json"
-# ./04_rganonymize_mask.sh
+# This script demonstrates how to run the rganonymize CLI command with example values.
+# For more details, visit: https://documentation.red-gate.com/testdatamanager
+#
+# Key Options:
+#   --database-engine: The database engine to use (e.g., SqlServer, PostgreSql).
+#   --connection-string: Connection string for the database.
+#   --masking-file: Path to the JSON file containing masking rules.
+#   --log-level: Logging level (e.g., Verbose, Info, Error).
 
+# Example Offline Licensing https://documentation.red-gate.com/testdatamanager/getting-started/licensing/activating-your-license # 
+#REDGATE_LICENSING_PAT_EMAIL=""
+#REDGATE_LICENSING_PAT_TOKEN=""
 
-# TDM Licensing Paramaters https://documentation.red-gate.com/testdatamanager/getting-started/licensing/activating-your-license
-REDGATE_LICENSING_PAT_EMAIL=${REDGATE_LICENSING_PAT_EMAIL:-"MyEmailHere"}
-REDGATE_LICENSING_PAT_KEY=${REDGATE_LICENSING_PAT_KEY:-"MyKeyHere"}
-
-# Project directory and config path
-PROJECT_DIRECTORY=${PROJECT_DIRECTORY:-"/mnt/c/Redgate/GIT/Repos/GitHub/Autopilot/Development/TDM-Autopilot"}
-PROJECT_CONFIGURATION_DIRECTORY="$PROJECT_DIRECTORY/Steps/Manual_CLI/Configuration"
-
-# CLI parameters
-DB_ENGINE=${DB_ENGINE:-"SqlServer"}
-LOG_LEVEL=${LOG_LEVEL:-"Verbose"}
-
-# Optional flags
-TRUST_CERT=${TRUST_SERVER_CERTIFICATE:-"yes"}
-ENCRYPT=${ENCRYPT:-"no"}
-
-# Target connection
-if [ -z "$TARGET_CONN_STRING" ]; then
-    TARGET_HOST=${TARGET_HOST:-"127.0.0.1"}
-    TARGET_PORT=${TARGET_PORT:-"1433"}
-    TARGET_DB=${TARGET_DB:-"Autopilot_Treated"}
-    TARGET_USER=${TARGET_USER:-"sa"}
-    TARGET_PASSWORD=${TARGET_PASSWORD:-"Redg@te1"}
-    TARGET_CONN_STRING="Server=$TARGET_HOST,$TARGET_PORT;Database=$TARGET_DB;Trust Server Certificate=$TRUST_CERT;Encrypt=$ENCRYPT;User ID=$TARGET_USER;Password=$TARGET_PASSWORD"
-fi
-
-MASKING_FILE=${MASKING_FILE:-"$PROJECT_CONFIGURATION_DIRECTORY/masking.json"}
-
-# Toggle for loading environment variables
-RELOAD_SERVER_VARS=${RELOAD_SERVER_VARS:-"yes"}
-
-if [ "$RELOAD_SERVER_VARS" = "yes" ]; then
-    echo "INFO: Loading environment variables from ~/.bashrc"
-    source ~/.bashrc
-else
-    echo "INFO: Skipping environment variable loading from ~/.bashrc"
-fi
+# Example values
+DB_ENGINE="SqlServer"
+CONNECTION_STRING="Server=Localhost;Database=Autopilot_Treated;User Id=TDMUser;Password=Password123;Trust Server Certificate=true;"
+MASKING_FILE="../masking.json"
+OPTIONS_FILE="../masking-options.json"
+DETERMINISTIC_SEED="my-secret-seed" # Can be any string, but must be at least 4 characters long
+LOG_LEVEL="Verbose"
 
 echo "Running masking for database engine: $DB_ENGINE"
 
 rganonymize mask \
   --database-engine "$DB_ENGINE" \
-  --connection-string "$TARGET_CONN_STRING" \
+  --connection-string "$CONNECTION_STRING" \
   --masking-file "$MASKING_FILE" \
+  --options-file "$OPTIONS_FILE" \
+  --deterministic-seed "$DETERMINISTIC_SEED" \
   --log-level "$LOG_LEVEL"
