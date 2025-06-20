@@ -10,7 +10,7 @@
 
 # Example values
 $DB_ENGINE = "SqlServer"
-$CONNECTION_STRING = "Server=Localhost\SQLEXPRESS;Database=Autopilot_Treated;User Id=TDMUser;Password=Password123;Trust Server Certificate=true;"
+$CONNECTION_STRING = "Server=Localhost;Database=Autopilot_Treated;Trusted_Connection=true;Trust Server Certificate=true;"
 $MASKING_FILE = "..\masking.json"
 $OPTIONS_FILE = "..\masking-options.json"
 # https://documentation.red-gate.com/testdatamanager/command-line-interface-cli/anonymization/masking/enabling-deterministic-masking

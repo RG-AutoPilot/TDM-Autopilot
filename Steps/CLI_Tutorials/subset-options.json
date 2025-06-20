@@ -1,42 +1,48 @@
 {
   "jsonSchemaVersion": 1,
-  "startingTables": [
-    { 
-      "table":
-      {
-        "schema": "Sales",
-        "name": "Orders"
-      },
-      "filterClause": "OrderId < 10260"
-    }
-  ],
-  "staticDataTables": [
+  "howTo": "Example logic can be found below to show syntax. Simply remove // at the beginnging of the attribute name. For example '//excludedTables' becomes 'excludedTables'",
+  "desiredSize": "50%",
+  "includeTablesRowThreshold": 30,
+  "//excludedTables": [
     {
-      "schema": "Logistics",
-      "name": "Region"
-    }
-  ],
-  "excludedTables": [
+      "schema": "",
+      "name": "store"
+    },
     {
-      "schema": "Sales",
-      "name": "OrderAuditLog"
+      "schema": "",
+      "name": "staff"
+    },
+    {
+      "schema": "",
+      "name": "address",
+      "columns": [
+        {
+          "name": "location",
+          "exclude": true
+        }
+      ]
     }
   ],
-  "manualRelationships": [
+  "//staticDataTables": [
+    {
+      "schema": "",
+      "name": "countries"
+    }
+  ],
+  "//manualRelationships": [
     {
       "sourceTable": 
         { 
-          "schema": "Sales", 
-          "name": "Customers"
+          "schema": "", 
+          "name": "SourceTest"
         },
-      "sourceColumns": [ "CustomerID" ],
+      "sourceColumns": [ "TargetId" ],
       "targetTable": 
         { 
-          "schema": "Sales", 
-          "name": "Orders" 
+          "schema": "dbo", 
+          "name": "TargetTest" 
         },
-      "targetColumns": [ "CustomerID" ]
+      "targetColumns": [ "Id" ]
      }
-  ],
-  "includeTablesRowThreshold": 1
+  ]
 }

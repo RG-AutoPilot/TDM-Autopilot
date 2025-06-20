@@ -13,8 +13,8 @@
 
 # Example values
 $DB_ENGINE = "SqlServer"
-$SOURCE_CONN_STRING = "Server=Localhost\SQLEXPRESS;Database=AutopilotProd_FullRestore;User Id=TDMUser;Password=Password123;Trust Server Certificate=true;"
-$TARGET_CONN_STRING = "Server=Localhost\SQLEXPRESS;Database=Autopilot_Treated;User Id=TDMUser;Password=Password123;Trust Server Certificate=true;"
+$SOURCE_CONN_STRING="Server=Localhost;Database=AutopilotProd_FullRestore;Trusted_Connection=true;Trust Server Certificate=true;"
+$TARGET_CONN_STRING="Server=Localhost;Database=Autopilot_Treated;Trusted_Connection=true;Trust Server Certificate=true;"
 $OPTIONS_FILE = "..\subset-options.json"
 $OUTPUT_FILE = "..\subset_log.json"
 # Perform a dry-run with no subsetting applied by turning to true

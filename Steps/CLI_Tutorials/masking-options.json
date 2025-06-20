@@ -1,7 +1,6 @@
 {
   "jsonSchemaVersion": 1,
   "classifications": {
-  
     "custom": [
       {
         "type": "CompanyNames",
