@@ -2,12 +2,15 @@
 
 # ===========================
 # File Name: 01_Install-TDMCLI.ps1
-# Version: 1.0.0
+# Version: 1.1.0
 # Author: Redgate Software Ltd
-# Last Updated: 2025-04-23
+# Last Updated: 2025-07-07
 # Description: Validate and Install TDM Data Treatment CLIs
-# Last Update Comment:
+# Last Update Comment: Added TLS 1.2 enforcement and improved error handling
 # ===========================
+
+# Ensure TLS 1.2 is enforced for secure connections
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # === Fetch parameters from environment ===
 $autoContinue        = [System.Convert]::ToBoolean($env:autoContinue) 2>$null
@@ -46,14 +49,14 @@ if ($missingTools.Count -eq 0) {
         try {
             if (Test-Path $installScriptPath) {
                 Write-Host "INFO: Running TDM CLI update script..." -ForegroundColor DarkCyan
-                powershell -ExecutionPolicy Bypass -File $installScriptPath
+                powershell -NoLogo -ExecutionPolicy Bypass -File $installScriptPath
                 # Refresh environment variables
                 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             } else {
                 throw "Update script not found at path: $installScriptPath"
             }
         } catch {
-            Write-Error "[ERROR] Failed to update TDM CLI tools: $_"
+            Write-Error "[ERROR] Failed to update TDM CLI tools: $($_.Exception.Message)"
             exit 1
         }
     }
@@ -79,16 +82,17 @@ if ($installNow) {
     try {
         if (Test-Path $installScriptPath) {
             Write-Host "INFO: Running TDM CLI install script..." -ForegroundColor DarkCyan
-            powershell -ExecutionPolicy Bypass -File $installScriptPath
+            powershell -NoLogo -ExecutionPolicy Bypass -File $installScriptPath
             Write-Host "INFO: TDM CLI tools installed successfully." -ForegroundColor Green
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         } else {
             throw "Install script not found at path: $installScriptPath"
         }
     } catch {
-        Write-Error "[ERROR] Failed to install TDM CLI tools: $_"
+        Write-Error "[ERROR] Failed to install TDM CLI tools: $($_.Exception.Message)"
         exit 1
     }
 } else {
     Write-Warning "Skipping TDM CLI installation. Some functionality may be unavailable."
 }
+
