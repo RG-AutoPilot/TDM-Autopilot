@@ -189,7 +189,7 @@ jobs:
           }
 
           # Validating rganonymize
-          $invoice326City = (Invoke-DbaQuery -SqlInstance '${{ env.Instance }}' -Database Autopilot_Treated -Query "SELECT BillingCity FROM dbo.Invoices WHERE InvoiceId = 326" -SqlCredential $SqlCredential).BillingCity
+          $invoice326City = (Invoke-DbaQuery -SqlInstance '${{ env.Instance }}' -Database Autopilot_Treated -Query "SELECT BillingCity FROM dbo.Invoice WHERE InvoiceId = 326" -SqlCredential $SqlCredential).BillingCity
           Write-Output "If rganonymize ran successfully, invoice 326 should NOT be Stockholm"
           Write-Output "BillingCity: $invoice326City"
           if ($invoice326City -like "Stockholm") {
