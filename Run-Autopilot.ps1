@@ -390,21 +390,19 @@ if ($backupPath) {
     # Output to screen
     Write-Host "  USE $($config.sourceDb)" -ForegroundColor Blue -BackgroundColor Black
     Write-Host "  --USE $($config.targetDb) -- Uncomment to run on target" -ForegroundColor Blue -BackgroundColor Black
-    Write-Host "  SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;" -ForegroundColor Blue -BackgroundColor Black
-    Write-Host "  SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity', c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'" -ForegroundColor Blue -BackgroundColor Black
-    Write-Host "  FROM Sales.Customers c JOIN Sales.Orders o ON o.CustomerID = c.CustomerID" -ForegroundColor Blue -BackgroundColor Black
-    Write-Host "  ORDER BY o.OrderID ASC;" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice;" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  SELECT TOP 20 i.InvoiceId, i.CustomerId, i.InvoiceDate, i.BillingAddress AS 'i.BillingAddress', i.BillingCity AS 'i.BillingCity', c.Address AS 'c.Address', c.City AS 'c.City', c.FirstName AS 'c.FirstName', c.LastName AS 'c.LastName'" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  FROM dbo.Customer c JOIN dbo.Invoice i ON i.CustomerId = c.CustomerId" -ForegroundColor Blue -BackgroundColor Black
+    Write-Host "  ORDER BY i.InvoiceId ASC;" -ForegroundColor Blue -BackgroundColor Black
 
     # Copy to clipboard
     $sqlExample = @"
 USE $($config.sourceDb)
 --USE $($config.targetDb) -- Uncomment to run on target
-SELECT COUNT (*) AS TotalOrders FROM Sales.Orders;
-SELECT TOP 20 o.OrderID, o.CustomerID, o.ShipAddress AS 'o.ShipAddress', o.ShipCity AS 'o.ShipCity',
-       c.Address AS 'c.Address', c.City AS 'c.City', c.ContactName AS 'c.ContactName'
-FROM Sales.Customers c
-JOIN Sales.Orders o ON o.CustomerID = c.CustomerID
-ORDER BY o.OrderID ASC;
+SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice;
+SELECT TOP 20 i.InvoiceId, i.CustomerId, i.InvoiceDate, i.BillingAddress AS 'i.BillingAddress', i.BillingCity AS 'i.BillingCity', c.Address AS 'c.Address', c.City AS 'c.City', c.FirstName AS 'c.FirstName', c.LastName AS 'c.LastName'
+FROM dbo.Customer c JOIN dbo.Invoice i ON i.CustomerId = c.CustomerId
+ORDER BY i.InvoiceId ASC;
 "@
 
     $sqlExample | Set-Clipboard
