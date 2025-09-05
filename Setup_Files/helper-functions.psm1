@@ -112,24 +112,41 @@ Function New-SampleDatabasesAutopilotFull {
         [PSCredential]$SqlCredential
     )
 
+
+    # Pre-check: Test connection to SQL instance
+    try {
+        if ($winAuth) {
+            $connTest = Test-DbaConnection -SqlInstance $sqlInstance -ErrorAction Stop
+        } else {
+            $connTest = Test-DbaConnection -SqlInstance $sqlInstance -SqlCredential $SqlCredential -ErrorAction Stop
+        }
+        if ($null -eq $connTest) {
+            throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths)."
+        }
+    } catch {
+        throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
+    }
+
     # If exists, drop the source and target databases
     Write-Host "  If exists, dropping the source and target databases" -ForegroundColor DarkCyan
 
-    if ($winAuth){
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck'
-    }
-    else {
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential
+    try {
+        if ($winAuth){
+            $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck' -ErrorAction Stop
+        }
+        else {
+            $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential -ErrorAction Stop
+        }
+    } catch {
+        throw "Could not connect to SQL instance or find the specified databases. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
     }
 
-    if (-not $dbsToDelete) {
-        throw "Could not connect to SQL instance or find the specified databases. Please check your connection details and configuration file (e.g., server, credentials, file paths)."
-    }
-
-    forEach ($db in $dbsToDelete.Name){
-        Write-Verbose "    Dropping database $db"
-        $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
-        Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+    if ($dbsToDelete) {
+        forEach ($db in $dbsToDelete.Name){
+            Write-Verbose "    Dropping database $db"
+            $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
+            Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+        }
     }
 
     # Create the fullRestore and subset databases
@@ -185,24 +202,41 @@ Function New-SampleDatabasesAutopilot {
     )
 
     try {
+
+        # Pre-check: Test connection to SQL instance
+        try {
+            if ($winAuth) {
+                $connTest = Test-DbaConnection -SqlInstance $sqlInstance -ErrorAction Stop
+            } else {
+                $connTest = Test-DbaConnection -SqlInstance $sqlInstance -SqlCredential $SqlCredential -ErrorAction Stop
+            }
+            if ($null -eq $connTest) {
+                throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths)."
+            }
+        } catch {
+            throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
+        }
+
         # If exists, drop the source and target databases
         Write-Host "  If exists, dropping the source and target databases" -ForegroundColor DarkCyan
 
-        if ($winAuth){
-            $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb
-        }
-        else {
-            $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb -SqlCredential $SqlCredential
+        try {
+            if ($winAuth){
+                $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb -ErrorAction Stop
+            }
+            else {
+                $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb -SqlCredential $SqlCredential -ErrorAction Stop
+            }
+        } catch {
+            throw "Could not connect to SQL instance or find the specified databases. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
         }
 
-        if (-not $dbsToDelete) {
-            throw "Could not connect to SQL instance or find the specified databases. Please check your connection details and configuration file (e.g., server, credentials, file paths)."
-        }
-
-        forEach ($db in $dbsToDelete.Name){
-            Write-Host "    Dropping database $db" -ForegroundColor DarkCyan
-            $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
-            Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+        if ($dbsToDelete) {
+            forEach ($db in $dbsToDelete.Name){
+                Write-Host "    Dropping database $db" -ForegroundColor DarkCyan
+                $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
+                Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+            }
         }
 
         # Create the fullRestore and subset databases
