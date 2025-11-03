@@ -1,4 +1,4 @@
-name: mssql2022-posh5
+name: mssql2022-posh5-docker
 
 on: # push, pr, nightly, and on demand, for all branches 
   # push:
