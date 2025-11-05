@@ -22,25 +22,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Start SQL Server 2022 container
-        id: start_sql
-        shell: powershell
+# --- Start SQL Server in Windows container ---
+      - name: Start SQL Server (Windows container)
         run: |
-          $containerName = "sql2022-autopilot"
-          $saPassword = "YourStrong!Passw0rd"
-          docker pull mcr.microsoft.com/mssql/server:2022-latest
-          docker run -d --name $containerName `
-            -e "ACCEPT_EULA=Y" `
-            -e "SA_PASSWORD=$saPassword" `
-            -p 1433:1433 `
-            mcr.microsoft.com/mssql/server:2022-latest
+          Write-Host "Pulling Windows SQL Server image..."
+          docker pull mcr.microsoft.com/mssql/server/windows/servercore:ltsc2019
 
-          # Wait for SQL Server to be ready
+          Write-Host "Starting SQL Server container..."
+          docker run -d --rm `
+            --name $env:CONTAINER_NAME `
+            -e "ACCEPT_EULA=Y" `
+            -e "SA_PASSWORD=DatabaseDevOps!" `
+            -p $env:DB_PORT:1433 `
+            mcr.microsoft.com/mssql/server/windows/servercore:ltsc2019
+
+          Write-Host "Waiting 30 seconds for SQL Server to initialize..."
           Start-Sleep -Seconds 30
+
+      # --- Verify SQL Server is running ---
+      - name: Check SQL connectivity
+        shell: pwsh
+        run: |
+          Write-Host "Checking SQL Server status..."
+          $result = sqlcmd -S "localhost,$env:DB_PORT" -U sa -P $env:SA_PASSWORD -Q "SELECT @@VERSION"
+          if (-not $?) {
+            throw "SQL Server not reachable"
+          }
+          Write-Host "SQL Server online:`n$result"
 
           # Set environment variables for later steps
           echo "dbUser=sa" >> $env:GITHUB_ENV
-          echo "dbPassword=$saPassword" >> $env:GITHUB_ENV
+          echo "dbPassword=DatabaseDevOps!" >> $env:GITHUB_ENV
           echo "instance=localhost,1433" >> $env:GITHUB_ENV
 
       - name: Run Autopilot for TDM in PowerShell 5
