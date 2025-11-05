@@ -22,22 +22,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-# --- Start SQL Server in Windows container ---
       - name: Start SQL Server (Windows container)
+        shell: pwsh
         run: |
-          Write-Host "Pulling Windows SQL Server image..."
-          docker pull mcr.microsoft.com/windows/server:ltsc2025
+          Write-Host "Pulling SQL Server image..."
+          docker pull mcr.microsoft.com/mssql/server:2019-windows2019
 
           Write-Host "Starting SQL Server container..."
           docker run -d --rm `
             --name $env:CONTAINER_NAME `
             -e "ACCEPT_EULA=Y" `
             -e "SA_PASSWORD=DatabaseDevOps!" `
-            -p $env:DB_PORT:1433 `
+            -p "1433:1433" `
             mcr.microsoft.com/windows/server:ltsc2025
 
-          Write-Host "Waiting 30 seconds for SQL Server to initialize..."
-          Start-Sleep -Seconds 30
+          Write-Host "Waiting 60 seconds for SQL Server to initialize..."
+          Start-Sleep -Seconds 60
 
       # --- Verify SQL Server is running ---
       - name: Check SQL connectivity
