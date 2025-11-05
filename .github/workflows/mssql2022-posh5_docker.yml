@@ -26,7 +26,7 @@ jobs:
       - name: Start SQL Server (Windows container)
         run: |
           Write-Host "Pulling Windows SQL Server image..."
-          docker pull mcr.microsoft.com/mssql/server/windows/servercore:ltsc2019
+          docker pull mcr.microsoft.com/windows/server:ltsc2025
 
           Write-Host "Starting SQL Server container..."
           docker run -d --rm `
@@ -34,7 +34,7 @@ jobs:
             -e "ACCEPT_EULA=Y" `
             -e "SA_PASSWORD=DatabaseDevOps!" `
             -p $env:DB_PORT:1433 `
-            mcr.microsoft.com/mssql/server/windows/servercore:ltsc2019
+            mcr.microsoft.com/windows/server:ltsc2025
 
           Write-Host "Waiting 30 seconds for SQL Server to initialize..."
           Start-Sleep -Seconds 30
