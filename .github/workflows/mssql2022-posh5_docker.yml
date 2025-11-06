@@ -26,7 +26,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Pulling SQL Server image..."
-          docker pull willh/mssql-server-windows-developer
+          docker pull willh/mssql-server-windows-developer:20H2
 
           Write-Host "Starting SQL Server container..."
           docker run -d --rm `
@@ -34,7 +34,7 @@ jobs:
             -e "ACCEPT_EULA=Y" `
             -e "SA_PASSWORD=DatabaseDevOps!" `
             -p "1433:1433" `
-            willh/mssql-server-windows-developer
+            willh/mssql-server-windows-developer:20H2
 
           Write-Host "Waiting 60 seconds for SQL Server to initialize..."
           Start-Sleep -Seconds 60
