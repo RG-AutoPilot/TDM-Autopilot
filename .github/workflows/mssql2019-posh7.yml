@@ -162,25 +162,26 @@ jobs:
       #       Write-Output "rganonymize ran successfully"
       #     }
           
+
       - name: Validating Results (Autopilot Databases)
         shell: pwsh
         if: ${{ always() }}
         run: |
           if (-not (Get-Module -ListAvailable -Name dbatools)) {
-          Write-Warning "The required module 'dbatools' is not currently installed."
-          Install-Module dbatools -Scope CurrentUser -AllowClobber -Force -ErrorAction Stop
-          Write-Host "INFO: dbatools installed successfully." -ForegroundColor Green
+            Write-Warning "The required module 'dbatools' is not currently installed."
+            Install-Module dbatools -Scope CurrentUser -AllowClobber -Force -ErrorAction Stop
+            Write-Host "INFO: dbatools installed successfully." -ForegroundColor Green
           }
 
           Set-DbatoolsConfig -FullName sql.connection.trustcert -Value $true
           Set-DbatoolsConfig -FullName sql.connection.encrypt -Value $false
           $SqlCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList ${{ env.dbUser }}, (ConvertTo-SecureString ${{ env.dbPassword }} -AsPlainText -Force)
-          
+
           # Validating rgsubset
-          $totalOrders = (Invoke-DbaQuery -SqlInstance '${{ env.instance }}' -Database Autopilot_Treated -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
-          Write-Output "If rgsubset ran successfully, there should be 12 orders in the Autopilot_Treated database"
-          Write-Output "Total Orders: $totalOrders"
-          if ($totalOrders -eq 12) {
+          $totalInvoices = (Invoke-DbaQuery -SqlInstance '${{ env.Instance }}' -Database Autopilot_Treated -Query "SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice;" -SqlCredential $SqlCredential).TotalInvoices
+          Write-Output "If rgsubset ran successfully, there should be 87 invoices in the Autopilot_Treated database"
+          Write-Output "Total Invoices: $totalInvoices"
+          if ($totalInvoices -eq 87) {
             Write-Output "rgsubset ran successfully"
           } else {
             Write-Error "rgsubset did not run successfully"
@@ -188,10 +189,10 @@ jobs:
           }
 
           # Validating rganonymize
-          $order10248City = (Invoke-DbaQuery -SqlInstance '${{ env.instance }}' -Database Autopilot_Treated -Query "SELECT ShipCity FROM Sales.Orders WHERE OrderID = 10248" -SqlCredential $SqlCredential).ShipCity
-          Write-Output "If rganonymize ran successfully, order 10248 should NOT be Reims"
-          Write-Output "ShipCity: $order10248City"
-          if ($order10248City -like "Reims") {
+          $invoice326City = (Invoke-DbaQuery -SqlInstance '${{ env.Instance }}' -Database Autopilot_Treated -Query "SELECT BillingCity FROM dbo.Invoice WHERE InvoiceId = 326" -SqlCredential $SqlCredential).BillingCity
+          Write-Output "If rganonymize ran successfully, invoice 326 should NOT be Stockholm"
+          Write-Output "BillingCity: $invoice326City"
+          if ($invoice326City -like "Stockholm") {
             Write-Error "rganonymize did not run successfully"
             exit 1
           } else {

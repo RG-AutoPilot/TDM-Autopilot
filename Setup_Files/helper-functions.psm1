@@ -112,19 +112,41 @@ Function New-SampleDatabasesAutopilotFull {
         [PSCredential]$SqlCredential
     )
 
-    # If exists, drop the source and target databases
-    Write-Host "  If exists, dropping the source and target databases" -ForegroundColor DarkCyan
-    if ($winAuth){
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck'
-    }
-    else {
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential
+
+    # Pre-check: Test connection to SQL instance
+    try {
+        if ($winAuth) {
+            $connTest = Test-DbaConnection -SqlInstance $sqlInstance -ErrorAction Stop
+        } else {
+            $connTest = Test-DbaConnection -SqlInstance $sqlInstance -SqlCredential $SqlCredential -ErrorAction Stop
+        }
+        if ($null -eq $connTest) {
+            throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths)."
+        }
+    } catch {
+        throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
     }
 
-    forEach ($db in $dbsToDelete.Name){
-        Write-Verbose "    Dropping database $db"
-        $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
-        Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+    # If exists, drop the source and target databases
+    Write-Host "  If exists, dropping the source and target databases" -ForegroundColor DarkCyan
+
+    try {
+        if ($winAuth){
+            $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck' -ErrorAction Stop
+        }
+        else {
+            $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb,'AutopilotBuild','AutopilotDev','AutopilotTest','AutopilotProd','AutopilotShadow', 'AutopilotCheck' -SqlCredential $SqlCredential -ErrorAction Stop
+        }
+    } catch {
+        throw "Could not connect to SQL instance or find the specified databases. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
+    }
+
+    if ($dbsToDelete) {
+        forEach ($db in $dbsToDelete.Name){
+            Write-Verbose "    Dropping database $db"
+            $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
+            Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+        }
     }
 
     # Create the fullRestore and subset databases
@@ -151,15 +173,15 @@ Function New-SampleDatabasesAutopilotFull {
     Invoke-DbaQuery -SqlInstance $sqlInstance -Database 'AutopilotTest' -File $testDataInsertScript -SqlCredential $SqlCredential | Out-Null
     
     Write-Host "  Validating that the databases have been created correctly" -ForegroundColor DarkCyan
-    $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
-    $totalSubsetOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders    
+    $totalFullRestoreInvoices = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice" -SqlCredential $SqlCredential).TotalInvoices
+    $totalSubsetInvoices = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice" -SqlCredential $SqlCredential).TotalInvoices   
     
-    if ($totalFullRestoreOrders -ne 830){
-        Write-Error "    There should be 830 rows in $sourceDb, but there are $totalFullRestoreOrders."
+    if ($totalFullRestoreInvoices -ne 412){
+        Write-Error "    There should be 412 rows in $sourceDb, but there are $totalFullRestoreInvoices."
         return $false
     }
-    if ($totalSubsetOrders -ne 0){
-        Write-Error "    There should be 0 rows in $targetDb, but there are $totalSubsetOrders."
+    if ($totalSubsetInvoices -ne 0){
+        Write-Error "    There should be 0 rows in $targetDb, but there are $totalSubsetInvoices."
         return $false
     }
     return $true
@@ -167,6 +189,7 @@ Function New-SampleDatabasesAutopilotFull {
 # Export the function
 Export-ModuleMember -Function New-SampleDatabasesAutopilotFull
 
+# Improved error handling for connection issues
 Function New-SampleDatabasesAutopilot {
     param (
         [Parameter(Mandatory = $true)][boolean]$WinAuth,
@@ -175,49 +198,76 @@ Function New-SampleDatabasesAutopilot {
         [Parameter(Mandatory = $true)][string]$targetDb,
         [Parameter(Mandatory = $true)][string]$schemaCreateScript,
         [Parameter(Mandatory = $true)][string]$productionDataInsertScript,
-        [Parameter(Mandatory = $true)][string]$testDataInsertScript,
         [PSCredential]$SqlCredential
     )
 
-    # If exists, drop the source and target databases
-    Write-Host "  If exists, dropping the source and target databases" -ForegroundColor DarkCyan
-    if ($winAuth){
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb
-    }
-    else {
-        $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb -SqlCredential $SqlCredential
-    }
+    try {
 
-    forEach ($db in $dbsToDelete.Name){
-        Write-Host "    Dropping database $db" -ForegroundColor DarkCyan
-        $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
-        Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
-    }
+        # Pre-check: Test connection to SQL instance
+        try {
+            if ($winAuth) {
+                $connTest = Test-DbaConnection -SqlInstance $sqlInstance -ErrorAction Stop
+            } else {
+                $connTest = Test-DbaConnection -SqlInstance $sqlInstance -SqlCredential $SqlCredential -ErrorAction Stop
+            }
+            if ($null -eq $connTest) {
+                throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths)."
+            }
+        } catch {
+            throw "Could not connect to SQL instance. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
+        }
 
-    # Create the fullRestore and subset databases
-    Write-Host "  Creating the empty Autopilot databases" -ForegroundColor DarkCyan
-    New-DbaDatabase -SqlInstance $sqlInstance -Name $sourceDb, $targetDb -SqlCredential $SqlCredential | Out-Null
-    
-    Write-Host "    Building up the $sourceDb database" -ForegroundColor DarkCyan
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $productionDataInsertScript -SqlCredential $SqlCredential | Out-Null
-    
-    Write-Host "    Building up the $targetDb database" -ForegroundColor DarkCyan
-    Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
-    
-    Write-Host "  Validating that the databases have been created correctly" -ForegroundColor DarkCyan
-    $totalFullRestoreOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders
-    $totalSubsetOrders = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalOrders FROM Sales.Orders" -SqlCredential $SqlCredential).TotalOrders    
-    
-    if ($totalFullRestoreOrders -ne 830){
-        Write-Error "    There should be 830 rows in $sourceDb, but there are $totalFullRestoreOrders."
+        # If exists, drop the source and target databases
+        Write-Host "  If exists, dropping the source and target databases" -ForegroundColor DarkCyan
+
+        try {
+            if ($winAuth){
+                $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb -ErrorAction Stop
+            }
+            else {
+                $dbsToDelete = Get-DbaDatabase -SqlInstance $sqlInstance -Database $sourceDb,$targetDb -SqlCredential $SqlCredential -ErrorAction Stop
+            }
+        } catch {
+            throw "Could not connect to SQL instance or find the specified databases. Please check your connection details and configuration file (e.g., server, credentials, file paths). Error: $($_.Exception.Message)"
+        }
+
+        if ($dbsToDelete) {
+            forEach ($db in $dbsToDelete.Name){
+                Write-Host "    Dropping database $db" -ForegroundColor DarkCyan
+                $sql = "ALTER DATABASE $db SET single_user WITH ROLLBACK IMMEDIATE; DROP DATABASE $db;"
+                Invoke-DbaQuery -SqlInstance $sqlInstance -Query $sql -SqlCredential $SqlCredential
+            }
+        }
+
+        # Create the fullRestore and subset databases
+        Write-Host "  Creating the empty Autopilot databases" -ForegroundColor DarkCyan
+        New-DbaDatabase -SqlInstance $sqlInstance -Name $sourceDb, $targetDb -SqlCredential $SqlCredential | Out-Null
+        
+        Write-Host "    Building up the $sourceDb database" -ForegroundColor DarkCyan
+        Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+        Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -File $productionDataInsertScript -SqlCredential $SqlCredential | Out-Null
+        
+        Write-Host "    Building up the $targetDb database" -ForegroundColor DarkCyan
+        Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -File $schemaCreateScript -SqlCredential $SqlCredential | Out-Null
+        
+        Write-Host "  Validating that the databases have been created correctly" -ForegroundColor DarkCyan
+        $totalFullRestoreInvoices = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $sourceDb -Query "SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice" -SqlCredential $SqlCredential).TotalInvoices
+        $totalSubsetInvoices = (Invoke-DbaQuery -SqlInstance $sqlInstance -Database $targetDb -Query "SELECT COUNT (*) AS TotalInvoices FROM dbo.Invoice" -SqlCredential $SqlCredential).TotalInvoices   
+        
+        if ($totalFullRestoreInvoices -ne 412){
+            Write-Error "    There should be 412 rows in $sourceDb, but there are $totalFullRestoreInvoices."
+            return $false
+        }
+        if ($totalSubsetInvoices -ne 0){
+            Write-Error "    There should be 0 rows in $targetDb, but there are $totalSubsetInvoices."
+            return $false
+        }
+        return $true
+    }
+    catch {
+        Write-Error "    Failed to create sample databases. Please check your connection details in the configuration file (e.g., server, credentials, file paths). Error: $_"
         return $false
     }
-    if ($totalSubsetOrders -ne 0){
-        Write-Error "    There should be 0 rows in $targetDb, but there are $totalSubsetOrders."
-        return $false
-    }
-    return $true
 }
 # Export the function
 Export-ModuleMember -Function New-SampleDatabasesAutopilot

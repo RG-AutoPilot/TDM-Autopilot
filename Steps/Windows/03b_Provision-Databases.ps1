@@ -1,5 +1,8 @@
 # 03_Provision-Databases.ps1 - Restore or create databases for TDM processing
 
+# Ensure all errors are terminating so parent script can catch and halt
+$ErrorActionPreference = 'Stop'
+
 # ===========================
 # File Name: 03b_Provision_Database.ps1
 # Version: 1.0.0
@@ -72,18 +75,31 @@ if ($backupPath) {
     return
 }
 
+
 if ($sampleDatabase -eq "Autopilot_Full") {
     Write-Host "INFO: Creating full Autopilot suite of databases..." -ForegroundColor DarkCyan
-    New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
+    $result = New-SampleDatabasesAutopilotFull -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
+    if (-not $result) {
+        Write-Error "ERROR: Failed to create full Autopilot suite of databases. Please check your connection details and configuration."
+        exit 1
+    }
     return
 }
 
 if ($sampleDatabase -eq "Autopilot") {
     Write-Host "INFO: Creating standard Autopilot databases..." -ForegroundColor DarkCyan
-    New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
+    $result = New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -SqlCredential:$SqlCredential
+    if (-not $result) {
+        Write-Error "ERROR: Failed to create standard Autopilot databases. Please check your connection details and configuration."
+        exit 1
+    }
     return
 }
 
 # Fallback generic creation
 Write-Host "INFO: Creating fallback Autopilot databases..." -ForegroundColor DarkCyan
-New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -testDataInsertScript:$testDataInsertScript -SqlCredential:$SqlCredential
+$result = New-SampleDatabasesAutopilot -WinAuth:$winAuth -sqlInstance:$sqlInstance -sourceDb:$sourceDb -targetDb:$targetDb -schemaCreateScript:$schemaCreateScript -productionDataInsertScript:$productionDataInsertScript -SqlCredential:$SqlCredential
+if (-not $result) {
+    Write-Error "ERROR: Failed to create fallback Autopilot databases. Please check your connection details and configuration."
+    exit 1
+}
